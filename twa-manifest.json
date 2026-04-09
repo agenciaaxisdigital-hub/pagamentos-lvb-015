@@ -1,0 +1,16 @@
+﻿{
+  "packageId": "br.com.sarelli.suplentes",
+  "host": "suplentes.sarelli.com.br",
+  "name": "Suplentes Sarelli",
+  "launcherName": "Suplentes",
+  "themeColor": "#ec4899",
+  "navigationColor": "#070510",
+  "backgroundColor": "#070510",
+  "enableNotifications": true,
+  "startUrl": "/",
+  "iconUrl": "https://suplentes.sarelli.com.br/icon-512.png",
+  "maskableIconUrl": "https://suplentes.sarelli.com.br/icon-512.png",
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "fallbackType": "customtabs"
+}

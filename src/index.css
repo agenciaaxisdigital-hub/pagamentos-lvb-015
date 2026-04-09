@@ -1,0 +1,112 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 220 20% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 20% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 20% 15%;
+    --primary: 340 82% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 340 30% 96%;
+    --secondary-foreground: 220 20% 25%;
+    --muted: 220 10% 96%;
+    --muted-foreground: 220 10% 45%;
+    --accent: 340 82% 55%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 10% 90%;
+    --input: 220 10% 90%;
+    --ring: 340 82% 55%;
+    --radius: 0.75rem;
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 220 20% 25%;
+    --sidebar-primary: 340 82% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 340 30% 96%;
+    --sidebar-accent-foreground: 220 20% 25%;
+    --sidebar-border: 220 10% 90%;
+    --sidebar-ring: 340 82% 55%;
+    --status-success: 142 71% 45%;
+    --status-warning: 45 93% 47%;
+    --status-alert: 25 95% 53%;
+  }
+
+  .dark {
+    --background: 240 10% 6%;
+    --foreground: 0 0% 95%;
+    --card: 240 10% 9%;
+    --card-foreground: 0 0% 95%;
+    --popover: 240 10% 9%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 340 82% 60%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 340 20% 15%;
+    --secondary-foreground: 0 0% 90%;
+    --muted: 240 8% 14%;
+    --muted-foreground: 220 10% 55%;
+    --accent: 340 82% 60%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 8% 16%;
+    --input: 240 8% 16%;
+    --ring: 340 82% 60%;
+    --status-success: 142 71% 50%;
+    --status-warning: 45 93% 52%;
+    --status-alert: 25 95% 58%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overscroll-behavior: none;
+    touch-action: manipulation;
+  }
+  ::-webkit-scrollbar { display: none; }
+  * { scrollbar-width: none; }
+  #root {
+    min-height: 100dvh;
+    height: 100dvh;
+    overflow: hidden;
+    padding-top: env(safe-area-inset-top);
+  }
+  html {
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    height: 100%;
+  }
+  body { height: 100%; }
+  * { -webkit-tap-highlight-color: transparent; }
+  button, a, input, select, textarea, [role="button"] { touch-action: manipulation; }
+  ::selection { background: hsl(340 82% 55% / 0.3); }
+  input, select, textarea { font-size: 16px !important; }
+  @media (display-mode: standalone) {
+    body { overscroll-behavior-y: none; -webkit-user-select: none; user-select: none; }
+    input, textarea, [contenteditable] { -webkit-user-select: text; user-select: text; }
+  }
+}
+
+@keyframes borderPulse {
+  0%, 100% {
+    border-color: rgba(236, 150, 170, 0.4);
+    box-shadow: 0 8px 40px rgba(236, 72, 153, 0.06), 0 0 15px rgba(236, 150, 170, 0.1);
+  }
+  50% {
+    border-color: rgba(236, 150, 170, 0.65);
+    box-shadow: 0 8px 40px rgba(236, 72, 153, 0.12), 0 0 25px rgba(236, 150, 170, 0.2);
+  }
+}
