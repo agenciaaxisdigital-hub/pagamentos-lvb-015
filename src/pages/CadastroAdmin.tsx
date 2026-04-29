@@ -33,8 +33,8 @@ const defaultForm: FormData = {
   cpf: "",
   whatsapp: "",
   valor_contrato: 0,
-  contrato_ate_mes: 9,
-  valor_contrato_meses: 4,
+  contrato_ate_mes: 10,
+  valor_contrato_meses: 5,
   assinatura: "",
   suplente_id: null,
   contrato_url: null,
@@ -122,7 +122,7 @@ export default function CadastroAdmin() {
 
   if (isLoading) return <div className="flex items-center justify-center h-40"><Loader2 className="animate-spin text-primary" /></div>;
 
-  const totalContrato = (form.valor_contrato || 0) * (form.contrato_ate_mes || 0);
+  const totalContrato = (form.valor_contrato || 0) * (form.valor_contrato_meses || 0);
 
   return (
     <PageTransition>
