@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { Save, Loader2, ArrowLeft, PenLine, Trash2, FileDown, MapPin, Check, ChevronsUpDown, User, Users } from "lucide-react";
+import { Save, Loader2, ArrowLeft, PenLine, Trash2, FileDown, MapPin, Check, ChevronsUpDown, User, Users, DollarSign } from "lucide-react";
 import { PageTransition } from "@/components/PageTransition";
 import SignaturePad from "@/components/SignaturePad";
 import { exportLiderancaPDF } from "@/lib/exports";
@@ -39,6 +39,7 @@ interface FormData {
   ligacao_politica: string;
   retirada_mensal_valor: number;
   retirada_ate_mes: number;
+  retirada_mensal_meses: number;
   chave_pix: string;
   assinatura: string;
   suplente_id: string | null;
@@ -55,6 +56,7 @@ const defaultForm: FormData = {
   ligacao_politica: "",
   retirada_mensal_valor: 0,
   retirada_ate_mes: 9,
+  retirada_mensal_meses: 4,
   chave_pix: "",
   assinatura: "",
   suplente_id: null,
@@ -120,6 +122,7 @@ export default function CadastroLideranca() {
       ligacao_politica: existing.ligacao_politica || "",
       retirada_mensal_valor: existing.retirada_mensal_valor || 0,
       retirada_ate_mes: existing.retirada_ate_mes || 9,
+      retirada_mensal_meses: existing.retirada_mensal_meses || 4,
       chave_pix: existing.chave_pix || "",
       assinatura: existing.assinatura || "",
       suplente_id: existing.suplente_id || null,
@@ -149,6 +152,7 @@ export default function CadastroLideranca() {
         ligacao_politica: form.ligacao_politica?.trim() || null,
         retirada_mensal_valor: Number(form.retirada_mensal_valor) || 0,
         retirada_ate_mes: Number(form.retirada_ate_mes) || 9,
+        retirada_mensal_meses: Number(form.retirada_mensal_meses) || 0,
         chave_pix: form.chave_pix?.trim() || null,
         assinatura: form.assinatura || null,
         municipio_id: selectedMunicipio || cidadeAtiva || null,
@@ -337,22 +341,41 @@ export default function CadastroLideranca() {
           </Popover>
         </section>
 
-        <section className="bg-card rounded-2xl border border-border p-4 space-y-4 shadow-sm">
-          <h2 className="text-sm font-semibold text-primary uppercase tracking-wider">Pagamento Mensal</h2>
+        <section className="bg-card rounded-2xl border border-border p-4 space-y-4 shadow-sm border-l-4 border-l-emerald-500/40">
+          <h2 className="text-sm font-semibold text-primary uppercase tracking-wider flex items-center gap-2">
+            <DollarSign size={16} className="text-emerald-500" /> Configuração de Pagamento
+          </h2>
           
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Valor (R$)">
-              <Input
-                type="number"
-                value={form.retirada_mensal_valor || ""}
-                onChange={(e) => set("retirada_mensal_valor", parseFloat(e.target.value) || 0)}
-                placeholder="0.00"
-                className="bg-card shadow-sm border-border"
-              />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field label="Valor Mensal (R$)" required>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">R$</span>
+                <Input
+                  type="number"
+                  value={form.retirada_mensal_valor || ""}
+                  onChange={(e) => set("retirada_mensal_valor", parseFloat(e.target.value) || 0)}
+                  placeholder="0.00"
+                  className="pl-9 bg-card shadow-sm border-border font-bold text-base h-12"
+                />
+              </div>
             </Field>
-            <Field label="Até qual mês?">
-              <Select value={String(form.retirada_ate_mes)} onValueChange={(v) => set("retirada_ate_mes", parseInt(v))}>
-                <SelectTrigger className="bg-card shadow-sm border-border"><SelectValue /></SelectTrigger>
+
+            <Field label="Chave PIX">
+              <Input value={form.chave_pix} onChange={(e) => set("chave_pix", e.target.value)} placeholder="CPF, e-mail, telefone..." className="bg-card shadow-sm border-border h-12" />
+            </Field>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Mês de Início">
+              <Select 
+                value={String(Math.max(1, form.retirada_ate_mes - form.retirada_mensal_meses + 1))} 
+                onValueChange={(v) => {
+                  const inicio = parseInt(v);
+                  const duracao = Math.max(1, form.retirada_ate_mes - inicio + 1);
+                  set("retirada_mensal_meses", duracao);
+                }}
+              >
+                <SelectTrigger className="bg-card shadow-sm border-border h-12 font-bold"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {MESES.map((m, i) => (
                     <SelectItem key={i + 1} value={String(i + 1)}>{m}</SelectItem>
@@ -360,21 +383,63 @@ export default function CadastroLideranca() {
                 </SelectContent>
               </Select>
             </Field>
+
+            <Field label="Mês Final">
+              <Select 
+                value={String(form.retirada_ate_mes)} 
+                onValueChange={(v) => {
+                  const fim = parseInt(v);
+                  const inicio = Math.max(1, form.retirada_ate_mes - form.retirada_mensal_meses + 1);
+                  const duracao = Math.max(1, fim - inicio + 1);
+                  setForm(prev => ({ ...prev, retirada_ate_mes: fim, retirada_mensal_meses: duracao }));
+                }}
+              >
+                <SelectTrigger className="bg-card shadow-sm border-border h-12 font-bold"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {MESES.map((m, i) => (
+                    <SelectItem key={i + 1} value={String(i + 1)} disabled={i + 1 < (form.retirada_ate_mes - form.retirada_mensal_meses + 1)}>{m}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
           </div>
 
-          <div className="bg-primary/5 rounded-xl p-4 border border-primary/10">
-            <div className="flex justify-between items-center mb-1">
-              <span className="text-sm text-muted-foreground font-medium">Contrato Total</span>
-              <span className="text-lg font-bold text-primary">{fmt(totalContrato)}</span>
+          {form.retirada_mensal_valor > 0 && (
+            <div className="bg-emerald-500/5 rounded-xl p-4 border border-emerald-500/10 space-y-2 animate-in fade-in slide-in-from-top-2">
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Previsão de Recebimento</span>
+                <span className="text-xl font-black text-emerald-600 dark:text-emerald-400">{fmt(totalContrato)}</span>
+              </div>
+              
+              <div className="flex items-center gap-2 py-3 bg-white/50 dark:bg-black/20 rounded-lg px-3">
+                <div className="flex-1">
+                  <p className="text-[9px] text-muted-foreground uppercase font-bold text-center">De</p>
+                  <p className="text-sm font-bold text-foreground text-center truncate">
+                    {MESES[Math.max(0, form.retirada_ate_mes - form.retirada_mensal_meses)]}
+                  </p>
+                </div>
+                <div className="w-px h-8 bg-emerald-500/20" />
+                <div className="px-4 text-center">
+                  <p className="text-[9px] text-muted-foreground uppercase font-bold">Total</p>
+                  <p className="text-sm font-black text-emerald-600">{form.retirada_mensal_meses}x</p>
+                </div>
+                <div className="w-px h-8 bg-emerald-500/20" />
+                <div className="flex-1">
+                  <p className="text-[9px] text-muted-foreground uppercase font-bold text-center">Até</p>
+                  <p className="text-sm font-bold text-foreground text-center truncate">
+                    {MESES[form.retirada_ate_mes - 1]}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1.5 justify-center">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-tighter">
+                  Registro Esporádico Ativado
+                </p>
+              </div>
             </div>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">
-              {form.retirada_ate_mes} meses de R$ {form.retirada_mensal_valor.toLocaleString('pt-BR')}
-            </p>
-          </div>
-
-          <Field label="Chave PIX para Pagamento">
-            <Input value={form.chave_pix} onChange={(e) => set("chave_pix", e.target.value)} placeholder="CPF, e-mail, telefone..." className="bg-card shadow-sm border-border" />
-          </Field>
+          )}
         </section>
 
         <section className="bg-card rounded-2xl border border-border p-4 space-y-4 shadow-sm">

@@ -104,6 +104,7 @@ export function SuplentePayCard({ s, pagsMes, pagsTodos, mes, ano, nomesMap }: S
   ].filter(c => c.planejado > 0 || c.qtd > 0);
 
   const handleSave = async (valor: number, obs: string, cat: string) => {
+    if (saving) return;
     if (cat === "retirada") {
       const jaExiste = pagsMes.some(p => p.categoria === "retirada");
       if (jaExiste) {
@@ -112,7 +113,8 @@ export function SuplentePayCard({ s, pagsMes, pagsTodos, mes, ano, nomesMap }: S
       }
     }
     setSaving(true);
-    const { error } = await supabase.from("pagamentos").insert({
+
+    const payload = {
       tipo_pessoa: "suplente",
       suplente_id: s.id,
       mes,
@@ -120,14 +122,28 @@ export function SuplentePayCard({ s, pagsMes, pagsTodos, mes, ano, nomesMap }: S
       categoria: cat,
       valor,
       observacao: obs || null,
-    });
-    setSaving(false);
-    if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
-    else {
-      toast({ title: `✅ ${fmt(valor)} registrado para ${s.nome}` });
-      qc.invalidateQueries({ queryKey: ["pagamentos"] });
-      setPaying(false);
-    }
+    };
+
+    const { execOnlineOrEnqueue } = await import("@/lib/offlineFallback");
+    
+    await execOnlineOrEnqueue(
+      () => supabase.from("pagamentos").insert(payload),
+      {
+        action: 'INSERT',
+        table: 'pagamentos',
+        payload,
+        onSuccess: () => {
+          toast({ title: `✅ ${fmt(valor)} registrado para ${s.nome}` });
+          qc.invalidateQueries({ queryKey: ["pagamentos"] });
+          setPaying(false);
+          setSaving(false);
+        },
+        onError: (err) => {
+          toast({ title: "Erro", description: err.message, variant: "destructive" });
+          setSaving(false);
+        }
+      }
+    );
   };
 
   const handleDelete = async (pagId: string) => {

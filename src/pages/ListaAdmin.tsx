@@ -5,7 +5,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
-import { Search, Plus, Phone, Trash2, ChevronRight, Loader2, FileDown } from "lucide-react";
+import { Search, Plus, Phone, Trash2, ChevronRight, Loader2, FileDown, FileText } from "lucide-react";
 import { exportAdminPDF } from "@/lib/exports";
 import { PageTransition } from "@/components/PageTransition";
 import { CardSkeletonList } from "@/components/CardSkeleton";
@@ -44,7 +44,7 @@ export default function ListaAdmin() {
   const { data: funcionarios, isLoading: loadData } = useQuery({
     queryKey: ["administrativo", cidadeAtiva],
     queryFn: async () => {
-      let query = (supabase as any).from("administrativo").select("id, nome, cpf, whatsapp, valor_contrato, contrato_ate_mes, municipio_id, suplente_id").order("nome");
+      let query = (supabase as any).from("administrativo").select("id, nome, cpf, whatsapp, valor_contrato, contrato_ate_mes, municipio_id, suplente_id, contrato_url").order("nome");
       if (cidadeAtiva) {
         query = query.or(`municipio_id.eq.${cidadeAtiva},municipio_id.is.null`);
       }
@@ -155,6 +155,16 @@ export default function ListaAdmin() {
                     >
                       <FileDown size={13} /> PDF
                     </button>
+                    {f.contrato_url && (
+                      <a
+                        href={f.contrato_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs text-violet-600 dark:text-violet-400 active:bg-violet-500/10"
+                      >
+                        <FileText size={13} /> Contrato
+                      </a>
+                    )}
                     <button
                       onClick={() => handleDelete(f.id, f.nome)}
                       disabled={deleting === f.id}

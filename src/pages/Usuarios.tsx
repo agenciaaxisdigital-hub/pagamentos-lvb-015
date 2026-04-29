@@ -44,18 +44,24 @@ export default function Usuarios() {
     if (!username.trim() || !password.trim()) return;
     setLoading(true);
     const { data, error } = await supabase.functions.invoke("create-user", {
-      body: { username: username.trim(), password, cargo },
+      body: { username: username.trim(), password, cargo: cargo.trim() },
     });
     setLoading(false);
     if (error || data?.error) {
       toast({ title: "Erro ao criar usuário", description: data?.error || error?.message || "Tente novamente", variant: "destructive" });
     } else {
-      toast({ title: "Usuário criado com sucesso!" });
+      const cargoNome = cargo === "administrativo" ? "Gestor Administrativo (Restrito)" : "Administrador Geral";
+      toast({ 
+        title: "Usuário criado com sucesso!", 
+        description: `O usuário ${username} foi configurado como ${cargoNome}.` 
+      });
       setUsername("");
       setPassword("");
       refetch();
     }
   };
+
+  const isRH_Selected = cargo === "administrativo";
 
   const handleDelete = async (userId: string, name: string) => {
     if (!confirm(`Excluir o usuário "${name}"? Esta ação não pode ser desfeita.`)) return;
@@ -97,7 +103,13 @@ export default function Usuarios() {
         <h1 className="text-xl font-bold text-foreground">Usuários</h1>
 
         {/* Criar usuário */}
-        <form onSubmit={handleCreate} className="space-y-4 bg-card rounded-2xl border border-border p-5 shadow-sm">
+        <form 
+          onSubmit={handleCreate} 
+          className={cn(
+            "space-y-4 bg-card rounded-2xl border p-5 shadow-sm transition-colors duration-300",
+            isRH_Selected ? "border-violet-200 bg-violet-50/30" : "border-border"
+          )}
+        >
           <h2 className="text-sm font-semibold text-primary uppercase tracking-wider flex items-center gap-2">
             <UserPlus size={15} /> Criar Novo Usuário
           </h2>
@@ -139,7 +151,10 @@ export default function Usuarios() {
           <div className="space-y-1.5">
             <Label className="text-sm text-muted-foreground">Tipo de Acesso (Cargo)</Label>
             <Select value={cargo} onValueChange={setCargo}>
-              <SelectTrigger className="bg-card shadow-sm border-border h-11">
+              <SelectTrigger className={cn(
+                "bg-card shadow-sm border-border h-11 transition-all",
+                isRH_Selected && "border-violet-400 ring-violet-400"
+              )}>
                 <SelectValue placeholder="Selecione o cargo" />
               </SelectTrigger>
               <SelectContent>
@@ -158,15 +173,22 @@ export default function Usuarios() {
               </SelectContent>
             </Select>
             <p className="text-[11px] text-muted-foreground">
-              {cargo === "admin" 
-                ? "Tem acesso a todas as abas: Pagamentos, Lideranças, Suplentes e Configurações." 
-                : "Acesso restrito: Consegue ver apenas a aba Admin e realizar pagamentos do setor Administrativo."}
+              {isRH_Selected 
+                ? "Acesso restrito: Consegue ver apenas a aba Admin e realizar pagamentos do setor Administrativo."
+                : "Tem acesso a todas as abas: Pagamentos, Lideranças, Suplentes e Configurações."}
             </p>
           </div>
 
-          <Button type="submit" disabled={loading} className="w-full gap-2 h-12 text-base font-semibold active:scale-[0.98] transition-transform">
-            {loading ? <Loader2 size={18} className="animate-spin" /> : <UserPlus size={18} />}
-            {loading ? "Criando..." : "Criar Usuário"}
+          <Button 
+            type="submit" 
+            disabled={loading} 
+            className={cn(
+              "w-full gap-2 h-12 text-base font-semibold active:scale-[0.98] transition-all duration-300",
+              isRH_Selected ? "bg-violet-600 hover:bg-violet-700 shadow-violet-200" : "bg-primary hover:bg-primary/90"
+            )}
+          >
+            {loading ? <Loader2 size={18} className="animate-spin" /> : (isRH_Selected ? <ShieldCheck size={18} /> : <UserPlus size={18} />)}
+            {loading ? "Criando..." : (isRH_Selected ? "Criar Gestor Administrativo" : "Criar Administrador Geral")}
           </Button>
         </form>
 

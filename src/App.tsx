@@ -6,22 +6,24 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import { Layout } from "@/components/Layout";
-import { CidadeProvider } from "@/contexts/CidadeContext";
+import { CidadeProvider, useCidade } from "@/contexts/CidadeContext";
 import SplashScreen from "@/components/SplashScreen";
+import VersionMonitor from "./components/VersionMonitor";
+import { useOfflineSync } from "./hooks/useOfflineSync";
 
 // ─── Lazy-loaded pages ─────────────────────────────────────────────────
-const Login = lazy(() => import("./pages/Login"));
-const Cadastro = lazy(() => import("./pages/Cadastro"));
-const Cadastros = lazy(() => import("./pages/Cadastros"));
-const Dashboard = lazy(() => import("./pages/Dashboard"));
-const Usuarios = lazy(() => import("./pages/Usuarios"));
-const Pagamentos = lazy(() => import("./pages/Pagamentos"));
-const ListaLiderancas = lazy(() => import("./pages/ListaLiderancas"));
-const CadastroLideranca = lazy(() => import("./pages/CadastroLideranca"));
-const ListaAdmin = lazy(() => import("./pages/ListaAdmin"));
-const CadastroAdmin = lazy(() => import("./pages/CadastroAdmin"));
-const GerenciarCidades = lazy(() => import("./pages/GerenciarCidades"));
-const NotFound = lazy(() => import("./pages/NotFound"));
+import Login from "./pages/Login";
+import Cadastro from "./pages/Cadastro";
+import Cadastros from "./pages/Cadastros";
+import Dashboard from "./pages/Dashboard";
+import Usuarios from "./pages/Usuarios";
+import Pagamentos from "./pages/Pagamentos";
+import ListaLiderancas from "./pages/ListaLiderancas";
+import CadastroLideranca from "./pages/CadastroLideranca";
+import ListaAdmin from "./pages/ListaAdmin";
+import CadastroAdmin from "./pages/CadastroAdmin";
+import GerenciarCidades from "./pages/GerenciarCidades";
+import NotFound from "./pages/NotFound";
 
 // ─── QueryClient com suporte offline ───────────────────────────────────
 const queryClient = new QueryClient({
@@ -45,14 +47,13 @@ const queryClient = new QueryClient({
   },
 });
 
-// ─── Limpa caches de React Query antigos (NÃO toca no IndexedDB offline) ──
+// ─── Limpeza caches de React Query antigos ──────────────────────────────
 try {
   Object.keys(window.localStorage).forEach(k => {
     if (k.startsWith("rq_cache") || k.startsWith("REACT_QUERY") || k.startsWith("tanstack")) {
       window.localStorage.removeItem(k);
     }
   });
-  // Migra itens pendentes do localStorage (offlineQueue antigo) para Dexie
   const legacyQueue = window.localStorage.getItem("offline_queue");
   if (legacyQueue) {
     try {
@@ -71,16 +72,14 @@ try {
               operationId: generateOperationId(),
             }).catch(() => {});
           });
-          console.log(`[Boot] Migrados ${items.length} itens do localStorage → Dexie`);
         });
       }
       window.localStorage.removeItem("offline_queue");
     } catch { window.localStorage.removeItem("offline_queue"); }
   }
-  console.log("[Boot] Startup limpo — IndexedDB offline preservado");
 } catch {}
 
-// ─── Fallback de carregamento leve ──────────────────────────────────────
+// ─── Fallback de carregamento ───────────────────────────────────────────
 function PageFallback() {
   return (
     <div className="flex items-center justify-center py-20">
@@ -90,27 +89,22 @@ function PageFallback() {
 }
 
 // ─── Rotas protegidas ────────────────────────────────────────────────────
-import { useCidade } from "@/contexts/CidadeContext";
-
 function ProtectedRoute({ children, allowedForRH = false }: { children: React.ReactNode; allowedForRH?: boolean }) {
-  const { user, loading } = useAuth();
-  const { isRH, loading: loadingCidade } = useCidade();
+  const { user, loading: loadingAuth } = useAuth();
+  const context = useCidade();
   
-  if (loading || loadingCidade) {
+  const loading = loadingAuth || !context || context.loading;
+  
+  if (loading) {
     return (
       <div className="min-h-[100dvh] flex flex-col items-center justify-center gap-3 bg-muted">
         <div className="w-10 h-10 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-        <p className="text-sm text-muted-foreground animate-pulse">Carregando...</p>
+        <p className="text-sm text-muted-foreground animate-pulse">Carregando permissões...</p>
       </div>
     );
   }
   
   if (!user) return <Navigate to="/login" replace />;
-  
-  // Se for RH e a página não for permitida para RH, redireciona para administrativo
-  if (isRH && !allowedForRH) {
-    return <Navigate to="/administrativo" replace />;
-  }
   
   return <Layout>{children}</Layout>;
 }
@@ -121,12 +115,6 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   if (user) return <Navigate to="/" replace />;
   return <>{children}</>;
 }
-
-// ─── App ─────────────────────────────────────────────────────────────────
-
-import VersionMonitor from "./components/VersionMonitor";
-
-import { useOfflineSync } from "./hooks/useOfflineSync";
 
 function GlobalOfflineSync() {
   useOfflineSync();
@@ -151,32 +139,29 @@ const App = () => {
       <TooltipProvider>
         <CidadeProvider>
           <GlobalOfflineSync />
-          
           <VersionMonitor />
           <Toaster />
           <Sonner />
           {showSplash && <SplashScreen onFinish={handleSplashFinish} />}
           <BrowserRouter>
-            <Suspense fallback={<PageFallback />}>
-              <Routes>
-                <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-                <Route path="/" element={<ProtectedRoute allowedForRH={true}><Index /></ProtectedRoute>} />
-                <Route path="/cadastros" element={<ProtectedRoute><Cadastros /></ProtectedRoute>} />
-                <Route path="/cadastros/novo" element={<ProtectedRoute><Cadastro /></ProtectedRoute>} />
-                <Route path="/cadastros/:id" element={<ProtectedRoute><Cadastros /></ProtectedRoute>} />
-                <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-                <Route path="/usuarios" element={<ProtectedRoute><Usuarios /></ProtectedRoute>} />
-                <Route path="/pagamentos" element={<ProtectedRoute allowedForRH={true}><Pagamentos /></ProtectedRoute>} />
-                <Route path="/liderancas" element={<ProtectedRoute><ListaLiderancas /></ProtectedRoute>} />
-                <Route path="/liderancas/novo" element={<ProtectedRoute><CadastroLideranca /></ProtectedRoute>} />
-                <Route path="/liderancas/:id" element={<ProtectedRoute><CadastroLideranca /></ProtectedRoute>} />
-                <Route path="/administrativo" element={<ProtectedRoute allowedForRH={true}><ListaAdmin /></ProtectedRoute>} />
-                <Route path="/administrativo/novo" element={<ProtectedRoute allowedForRH={true}><CadastroAdmin /></ProtectedRoute>} />
-                <Route path="/administrativo/:id" element={<ProtectedRoute allowedForRH={true}><CadastroAdmin /></ProtectedRoute>} />
-                <Route path="/cidades" element={<ProtectedRoute><GerenciarCidades /></ProtectedRoute>} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
+            <Routes>
+          <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+          <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+          <Route path="/cadastros" element={<ProtectedRoute><Cadastros /></ProtectedRoute>} />
+          <Route path="/cadastros/novo" element={<ProtectedRoute><Cadastro /></ProtectedRoute>} />
+          <Route path="/cadastros/:id" element={<ProtectedRoute><Cadastro /></ProtectedRoute>} />
+          <Route path="/liderancas" element={<ProtectedRoute allowedForRH><ListaLiderancas /></ProtectedRoute>} />
+          <Route path="/liderancas/novo" element={<ProtectedRoute allowedForRH><CadastroLideranca /></ProtectedRoute>} />
+          <Route path="/liderancas/:id" element={<ProtectedRoute allowedForRH><CadastroLideranca /></ProtectedRoute>} />
+          <Route path="/administrativo" element={<ProtectedRoute allowedForRH><ListaAdmin /></ProtectedRoute>} />
+          <Route path="/administrativo/novo" element={<ProtectedRoute allowedForRH><CadastroAdmin /></ProtectedRoute>} />
+          <Route path="/administrativo/:id" element={<ProtectedRoute allowedForRH><CadastroAdmin /></ProtectedRoute>} />
+          <Route path="/pagamentos" element={<ProtectedRoute allowedForRH><Pagamentos /></ProtectedRoute>} />
+          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/usuarios" element={<ProtectedRoute><Usuarios /></ProtectedRoute>} />
+          <Route path="/cidades" element={<ProtectedRoute><GerenciarCidades /></ProtectedRoute>} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
           </BrowserRouter>
         </CidadeProvider>
       </TooltipProvider>

@@ -77,28 +77,76 @@ export function CidadeProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const checkAdmin = useCallback(async () => {
-    if (!user) { setIsAdmin(false); return; }
-    const { data } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" });
-    setIsAdmin(!!data);
+  const checkPermissions = useCallback(async () => {
+    if (!user) {
+      setIsAdmin(false);
+      setIsRH(false);
+      return;
+    }
+
+    try {
+      // 1. Prioridade: Metadata do Token
+      const metaCargo = user.user_metadata?.cargo?.toString().toLowerCase().trim();
+      
+      if (metaCargo) {
+        const isAdm = metaCargo === "admin" || metaCargo === "financeiro_admin";
+        const isRh = metaCargo === "administrativo" || metaCargo === "gestor_administrativo";
+        
+        setIsAdmin(isAdm);
+        setIsRH(isRh);
+        console.log(`[Permissions] Metadata Match: ${metaCargo} -> Admin:${isAdm}, RH:${isRh}`);
+        return;
+      }
+
+      // 2. Fallback: Tabela usuários
+      const { data: userData } = await supabase
+        .from("usuarios")
+        .select("cargo")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      const tableCargo = userData?.cargo?.toString().toLowerCase().trim() || "";
+      const isAdmTable = tableCargo === "admin" || tableCargo === "financeiro_admin";
+      const isRhTable = tableCargo === "administrativo" || tableCargo === "gestor_administrativo";
+      
+      setIsAdmin(isAdmTable);
+      setIsRH(isRhTable);
+      console.log(`[Permissions] Table Match: ${tableCargo} -> Admin:${isAdmTable}, RH:${isRhTable}`);
+
+    } catch (err) {
+      console.error("[Permissions] Erro crítico:", err);
+    }
   }, [user]);
 
-  const checkRH = useCallback(async () => {
-    if (!user) { setIsRH(false); return; }
-    const { data } = await supabase.rpc("has_role", { _user_id: user.id, _role: "administrativo" });
-    setIsRH(!!data);
-  }, [user]);
-
-  // Paralelizar fetchMunicipios + checkAdmin + checkRH
+  // Paralelizar fetchMunicipios + checkPermissions com Timeout de Segurança
   useEffect(() => {
+    let mounted = true;
     const t0 = performance.now();
-    Promise.all([fetchMunicipios(), checkAdmin(), checkRH()])
+    
+    // Forçar destravamento da tela após 2 segundos
+    const timer = setTimeout(() => {
+      if (mounted) setLoading(false);
+    }, 2000);
+
+    Promise.all([fetchMunicipios(), checkPermissions()])
       .then(() => {
-        console.log(`[CidadeProvider] Init completed in ${(performance.now() - t0).toFixed(0)}ms`);
+        if (mounted) console.log(`[CidadeProvider] Init completed in ${(performance.now() - t0).toFixed(0)}ms`);
       })
-      .catch(err => console.error("[CidadeProvider] Init error:", err))
-      .finally(() => setLoading(false));
-  }, [fetchMunicipios, checkAdmin]);
+      .catch(err => {
+        console.error("[CidadeProvider] Init error:", err);
+      })
+      .finally(() => {
+        if (mounted) {
+          clearTimeout(timer);
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      mounted = false;
+      clearTimeout(timer);
+    };
+  }, [fetchMunicipios, checkPermissions]);
 
   const setCidadeAtiva = useCallback((id: string | null) => {
     setCidadeAtivaState(id);

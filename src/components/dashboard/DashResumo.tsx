@@ -48,34 +48,44 @@ function DashResumoInner({
 
   return (
     <div className="space-y-4">
-      {/* Hero card */}
-      <div className="bg-gradient-to-br from-primary via-primary/90 to-primary/80 rounded-2xl p-5 shadow-lg text-primary-foreground">
-        <div className="flex items-center gap-2 text-sm opacity-80 mb-1">
-          <DollarSign size={16} /> Orçamento Total da Operação
-        </div>
-        <p className="text-3xl font-bold">{fmt(orcamentoTotal)}</p>
-        <div className="grid grid-cols-3 gap-2 sm:gap-3 mt-4">
-          <div className="bg-primary-foreground/15 backdrop-blur rounded-xl px-2 sm:px-3 py-2 text-center">
-            <p className="text-[9px] uppercase tracking-wider opacity-70">Já Pago</p>
-            <p className="text-xs sm:text-sm font-bold">{fmt(totalPagoAno)}</p>
+      {/* Hero card - Refatorado com layout de saldo e cor Rosa */}
+      <div className="bg-gradient-to-br from-pink-600 via-rose-500 to-rose-400 rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden mb-2">
+        {/* Decoração sutil de fundo */}
+        <div className="absolute -top-24 -left-24 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
+        <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-white/5 rounded-full blur-3xl" />
+        
+        <div className="relative z-10 flex flex-col items-center text-center">
+          <div className="bg-white/20 backdrop-blur-xl px-4 py-1.5 rounded-full border border-white/20 mb-6">
+            <span className="text-[10px] font-black text-white uppercase tracking-[0.3em]">Resumo Financeiro 2026</span>
           </div>
-          <div className="bg-primary-foreground/15 backdrop-blur rounded-xl px-2 sm:px-3 py-2 text-center">
-            <p className="text-[9px] uppercase tracking-wider opacity-70">Falta Pagar</p>
-            <p className="text-xs sm:text-sm font-bold">{fmt(saldoRestante)}</p>
+
+          <p className="text-white/80 text-[11px] font-bold uppercase tracking-widest mb-2">Saldo Restante (A Pagar)</p>
+          <h2 className="text-white text-5xl sm:text-6xl font-black tracking-tighter mb-8 tabular-nums drop-shadow-lg">
+            {fmt(saldoRestante)}
+          </h2>
+
+          <div className="w-full grid grid-cols-2 gap-4 mb-8">
+            <div className="text-left bg-white/15 backdrop-blur-sm rounded-3xl p-5 border border-white/10">
+              <p className="text-white/70 text-[9px] font-bold uppercase tracking-widest mb-1">Total Já Pago</p>
+              <p className="text-white text-xl font-bold">{fmt(totalPagoAno)}</p>
+            </div>
+            <div className="text-left bg-white/15 backdrop-blur-sm rounded-3xl p-5 border border-white/10">
+              <p className="text-white/70 text-[9px] font-bold uppercase tracking-widest mb-1">Orçamento Geral</p>
+              <p className="text-white text-xl font-bold">{fmt(orcamentoTotal)}</p>
+            </div>
           </div>
-          <div className="bg-primary-foreground/15 backdrop-blur rounded-xl px-2 sm:px-3 py-2 text-center">
-            <p className="text-[9px] uppercase tracking-wider opacity-70">% Pago</p>
-            <p className="text-xs sm:text-sm font-bold">{orcamentoTotal > 0 ? ((totalPagoAno / orcamentoTotal) * 100).toFixed(1) : 0}%</p>
-          </div>
-        </div>
-        <div className="mt-3 space-y-1">
-          <div className="h-3 bg-primary-foreground/20 rounded-full overflow-hidden">
-            <div className="h-full rounded-full bg-primary-foreground transition-all duration-700" style={{ width: `${orcamentoTotal > 0 ? Math.min(100, (totalPagoAno / orcamentoTotal) * 100) : 0}%` }} />
-          </div>
-          <div className="flex justify-between text-[9px] opacity-60">
-            <span>0%</span>
-            <span>{orcamentoTotal > 0 ? ((totalPagoAno / orcamentoTotal) * 100).toFixed(1) : 0}% pago</span>
-            <span>100%</span>
+
+          <div className="w-full space-y-3">
+            <div className="flex justify-between items-end mb-1">
+              <span className="text-white/70 text-[10px] font-bold uppercase tracking-tighter">Status da Operação</span>
+              <span className="text-white text-sm font-black">{orcamentoTotal > 0 ? ((totalPagoAno / orcamentoTotal) * 100).toFixed(1) : 0}% PAGO</span>
+            </div>
+            <div className="h-4 bg-black/10 rounded-full p-1 border border-white/10">
+              <div 
+                className="h-full bg-white rounded-full transition-all duration-1000 shadow-[0_0_20px_rgba(255,255,255,0.4)]" 
+                style={{ width: `${orcamentoTotal > 0 ? Math.min(100, (totalPagoAno / orcamentoTotal) * 100) : 0}%` }} 
+              />
+            </div>
           </div>
         </div>
       </div>

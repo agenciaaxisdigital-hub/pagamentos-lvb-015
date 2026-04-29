@@ -97,6 +97,17 @@ export default function Dashboard() {
       const cat = tipo === "admin" ? "salario" : "retirada";
       const inicioG = tipo === "suplente" ? MES_INICIO_SUP : (tipo === "lideranca" ? MES_INICIO_LID : MES_INICIO_ADM);
       
+      // Cálculo manual para lideranças (Ate - Meses + 1)
+      let manualStart: number | null = null;
+      if (tipo === "lideranca" && (p as any).retirada_ate_mes && (p as any).retirada_mensal_meses) {
+        manualStart = Math.max(1, (p as any).retirada_ate_mes - (p as any).retirada_mensal_meses + 1);
+      } else if (tipo === "admin" && (p as any).contrato_ate_mes && (p as any).valor_contrato_meses) {
+        manualStart = Math.max(1, (p as any).contrato_ate_mes - (p as any).valor_contrato_meses + 1);
+      } else if (tipo === "suplente" && (p as any).retirada_mensal_meses) {
+        // Suplentes: Mês Final fixo (MES_FIM), então início é MES_FIM - meses + 1
+        manualStart = Math.max(1, MES_FIM - (p as any).retirada_mensal_meses + 1);
+      }
+
       map[p.id] = getMesInicioComHistorico({
         tipo: tipo as any,
         pessoaId: p.id,
@@ -104,6 +115,7 @@ export default function Dashboard() {
         mesInicioGlobal: inicioG,
         pagamentos: globalPag,
         categoria: cat,
+        mesInicioManual: manualStart,
       });
     });
     return map;

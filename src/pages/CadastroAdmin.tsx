@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { Save, Loader2, ArrowLeft, PenLine, Trash2, FileDown, MapPin } from "lucide-react";
+import { Save, Loader2, ArrowLeft, PenLine, Trash2, FileDown, MapPin, FileText, Upload, X } from "lucide-react";
 import { PageTransition } from "@/components/PageTransition";
 import SignaturePad from "@/components/SignaturePad";
 import { exportAdminPDF } from "@/lib/exports";
@@ -22,8 +22,10 @@ interface FormData {
   whatsapp: string;
   valor_contrato: number;
   contrato_ate_mes: number;
+  valor_contrato_meses: number;
   assinatura: string;
   suplente_id: string | null;
+  contrato_url: string | null;
 }
 
 const defaultForm: FormData = {
@@ -32,8 +34,10 @@ const defaultForm: FormData = {
   whatsapp: "",
   valor_contrato: 0,
   contrato_ate_mes: 9,
+  valor_contrato_meses: 4,
   assinatura: "",
   suplente_id: null,
+  contrato_url: null,
 };
 
 const fmt = (v: number) => (v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -80,8 +84,10 @@ export default function CadastroAdmin() {
       whatsapp: existing.whatsapp || "",
       valor_contrato: existing.valor_contrato || 0,
       contrato_ate_mes: existing.contrato_ate_mes || 9,
+      valor_contrato_meses: existing.valor_contrato_meses || 4,
       assinatura: existing.assinatura || "",
       suplente_id: existing.suplente_id || null,
+      contrato_url: existing.contrato_url || null,
     });
     setSelectedMunicipio(existing.municipio_id || cidadeAtiva || "");
     setInitialized(true);
@@ -249,6 +255,63 @@ export default function CadastroAdmin() {
           onSave={(dataUrl) => set("assinatura", dataUrl)}
           initial={form.assinatura || undefined}
         />
+        
+        <section className="bg-card rounded-2xl border border-border p-4 space-y-3 shadow-sm">
+          <h2 className="text-sm font-semibold text-primary uppercase tracking-wider flex items-center gap-2">
+            <FileText size={16} /> Contrato (PDF)
+          </h2>
+          
+          {form.contrato_url ? (
+            <div className="flex items-center justify-between bg-muted/30 rounded-xl p-3 border border-border">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-lg bg-red-500/10 flex items-center justify-center shrink-0">
+                  <FileText size={20} className="text-red-500" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-foreground truncate">Contrato_Anexado.pdf</p>
+                  <a href={form.contrato_url} target="_blank" rel="noreferrer" className="text-[10px] text-primary font-bold hover:underline">VISUALIZAR ARQUIVO</a>
+                </div>
+              </div>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => set("contrato_url", null)}>
+                <X size={16} />
+              </Button>
+            </div>
+          ) : (
+            <div className="relative">
+              <input 
+                type="file" 
+                accept=".pdf" 
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  if (file.size > 5 * 1024 * 1024) {
+                    toast({ title: "Arquivo muito grande", description: "Máximo 5MB", variant: "destructive" });
+                    return;
+                  }
+                  setSaving(true);
+                  const fileExt = file.name.split('.').pop();
+                  const fileName = `${Date.now()}.${fileExt}`;
+                  const { data, error } = await supabase.storage.from('documentos').upload(`contratos/${fileName}`, file);
+                  if (error) {
+                    toast({ title: "Erro no upload", description: error.message, variant: "destructive" });
+                    setSaving(false);
+                  } else {
+                    const { data: { publicUrl } } = supabase.storage.from('documentos').getPublicUrl(data.path);
+                    set("contrato_url", publicUrl);
+                    setSaving(false);
+                    toast({ title: "Arquivo anexado!" });
+                  }
+                }}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
+              />
+              <div className="w-full h-20 border-2 border-dashed border-border rounded-2xl flex flex-col items-center justify-center gap-1 bg-muted/10">
+                <Upload size={20} className="text-muted-foreground" />
+                <p className="text-xs font-medium text-muted-foreground">Clique para subir o PDF do contrato</p>
+                <p className="text-[10px] text-muted-foreground">Tamanho máx: 5MB</p>
+              </div>
+            </div>
+          )}
+        </section>
 
         <Button
           onClick={handleSave}

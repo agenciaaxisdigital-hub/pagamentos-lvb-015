@@ -19,6 +19,7 @@ type GetMesInicioArgs = {
   pessoaId: string;
   tipo: PessoaPagamentoTipo;
   anoReferencia?: number;
+  mesInicioManual?: number | null;
 };
 
 export function getMesInicioPorCadastro(
@@ -57,8 +58,11 @@ export function getMesInicioComHistorico({
   pessoaId,
   tipo,
   anoReferencia = 2026,
+  mesInicioManual,
 }: GetMesInicioArgs): number {
-  const inicioCadastro = getMesInicioPorCadastro(createdAt, mesInicioGlobal, mesCutoffExcecao, anoReferencia);
+  const inicioCadastro = (mesInicioManual && mesInicioManual > 0) 
+    ? mesInicioManual 
+    : getMesInicioPorCadastro(createdAt, mesInicioGlobal, mesCutoffExcecao, anoReferencia);
 
   const primeiroMesPago = pagamentos
     .filter((pagamento) => (

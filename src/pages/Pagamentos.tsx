@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
+import { MES_INICIO_LID, MES_INICIO_SUP, MES_INICIO_ADM, MES_FIM } from "@/components/dashboard/types";
 import { PageTransition } from "@/components/PageTransition";
 import { CardSkeletonList } from "@/components/CardSkeleton";
 import {
@@ -53,14 +54,20 @@ type Suplente = {
 
 type Lideranca = {
   id: string; nome: string; regiao: string | null;
-  retirada_mensal_valor: number | null; chave_pix: string | null;
+  retirada_mensal_valor: number | null; 
+  retirada_ate_mes: number | null;
+  retirada_mensal_meses: number | null;
+  chave_pix: string | null;
   created_at: string;
   suplente_id?: string | null;
   lideranca_vinculada_id?: string | null;
 };
 
 type AdminPessoa = {
-  id: string; nome: string; whatsapp: string | null; valor_contrato: number | null;
+  id: string; nome: string; whatsapp: string | null; 
+  valor_contrato: number | null;
+  contrato_ate_mes: number | null;
+  valor_contrato_meses: number | null;
   created_at: string;
   suplente_id?: string | null;
 };
@@ -85,18 +92,12 @@ export default function Pagamentos() {
   const now = new Date();
   const [mes, setMes] = useState(Math.max(now.getMonth() + 1, 3));
   const [ano, setAno] = useState(now.getFullYear());
+  const { isAdmin, isRH, cidadeAtiva } = useCidade();
   const [abaAtiva, setAbaAtiva] = useState<"suplentes" | "liderancas" | "admin">("suplentes");
   const [busca, setBusca] = useState("");
   const [showPagos, setShowPagos] = useState(true);
   const [showAlertaAtraso, setShowAlertaAtraso] = useState(false);
   const [alertaDismissed, setAlertaDismissed] = useState(false);
-
-  const { cidadeAtiva: cidadeGlobal, municipios, isAdmin, isRH } = useCidade();
-  const cidadeAtiva = cidadeGlobal;
-
-  useEffect(() => {
-    if (isRH) setAbaAtiva("admin");
-  }, [isRH]);
 
   const { data: suplentesNomes } = useQuery({
     queryKey: ["suplentes-nomes-map", cidadeAtiva],
@@ -235,6 +236,16 @@ export default function Pagamentos() {
       const cat = tipo === "admin" ? "salario" : "retirada";
       const inicioG = tipo === "suplente" ? MES_INICIO_SUPLENTES : (tipo === "lideranca" ? MES_INICIO_LIDERANCAS : MES_INICIO_ADMIN);
       
+      let manualStart: number | null = null;
+      if (tipo === "lideranca" && (p as any).retirada_ate_mes && (p as any).retirada_mensal_meses) {
+        manualStart = Math.max(1, (p as any).retirada_ate_mes - (p as any).retirada_mensal_meses + 1);
+      } else if (tipo === "admin" && (p as any).contrato_ate_mes && (p as any).valor_contrato_meses) {
+        manualStart = Math.max(1, (p as any).contrato_ate_mes - (p as any).valor_contrato_meses + 1);
+      } else if (tipo === "suplente" && (p as any).retirada_mensal_meses) {
+        // Suplentes geralmente tem um Mês Final fixo (Outubro=10), então o início é 10 - meses + 1
+        manualStart = Math.max(1, 10 - (p as any).retirada_mensal_meses + 1);
+      }
+
       map[p.id] = getMesInicioComHistorico({
         tipo: tipo as any,
         pessoaId: p.id,
@@ -242,19 +253,34 @@ export default function Pagamentos() {
         mesInicioGlobal: inicioG,
         pagamentos: pagamentosPorPessoa[p.id] || [],
         categoria: cat,
+        mesInicioManual: manualStart,
       });
     });
     return map;
   }, [suplentes, liderancas, administrativo, pagamentosPorPessoa, isLoading]);
 
-  const supComValor = useMemo(() => (suplentes || []).filter(s => mes >= (eligibilidadeMap[s.id] || 99)), [suplentes, mes, eligibilidadeMap]);
-  const lidComValor = useMemo(() => (liderancas || []).filter(l => mes >= (eligibilidadeMap[l.id] || 99)), [liderancas, mes, eligibilidadeMap]);
-  const admComValor = useMemo(() => (administrativo || []).filter(a => mes >= (eligibilidadeMap[a.id] || 99)), [administrativo, mes, eligibilidadeMap]);
+  const supComValor = useMemo(() => (suplentes || []).filter(s => {
+    const inicio = eligibilidadeMap[s.id] || 99;
+    const fim = MES_FIM; // Suplentes até Mês Final
+    return mes >= inicio && mes <= fim;
+  }), [suplentes, mes, eligibilidadeMap]);
+
+  const lidComValor = useMemo(() => (liderancas || []).filter(l => {
+    const inicio = eligibilidadeMap[l.id] || 99;
+    const fim = l.retirada_ate_mes || MES_FIM;
+    return mes >= inicio && mes <= fim;
+  }), [liderancas, mes, eligibilidadeMap]);
+
+  const admComValor = useMemo(() => (administrativo || []).filter(a => {
+    const inicio = eligibilidadeMap[a.id] || 99;
+    const fim = a.contrato_ate_mes || MES_FIM;
+    return mes >= inicio && mes <= fim;
+  }), [administrativo, mes, eligibilidadeMap]);
 
   const supPlanejado = useMemo(() => supComValor.reduce((a, s) => a + (s.retirada_mensal_valor || 0), 0), [supComValor]);
   const lidPlanejado = useMemo(() => lidComValor.reduce((a, l) => a + (l.retirada_mensal_valor || 0), 0), [lidComValor]);
   const admPlanejado = useMemo(() => admComValor.reduce((a, p) => a + (p.valor_contrato || 0), 0), [admComValor]);
-  const totalPlanejado = isRH ? admPlanejado : (supPlanejado + lidPlanejado + admPlanejado);
+  const totalPlanejado = supPlanejado + lidPlanejado + admPlanejado;
 
   // Para retiradas/salários, cap pago no planejado por pessoa (não pode mostrar mais pago que planejado)
   const supPago = useMemo(() => supComValor.reduce((a, s) => {
@@ -272,7 +298,7 @@ export default function Pagamentos() {
     return a + Math.min(p, ad.valor_contrato || 0);
   }, 0), [admComValor, pagsMes]);
 
-  const totalPago = isRH ? admPago : (supPago + lidPago + admPago);
+  const totalPago = supPago + lidPago + admPago;
 
   // Calcular "falta" por pessoa (não permite que excesso de um compense falta de outro)
   const supFaltaReal = useMemo(() => supComValor.reduce((a, s) => {
@@ -290,7 +316,7 @@ export default function Pagamentos() {
     return a + Math.max(0, (ad.valor_contrato || 0) - pago);
   }, 0), [admComValor, pagsMes]);
 
-  const totalFalta = isRH ? admFaltaReal : (supFaltaReal + lidFaltaReal + admFaltaReal);
+  const totalFalta = supFaltaReal + lidFaltaReal + admFaltaReal;
   const pctGeral = totalPlanejado > 0 ? Math.min(100, ((totalPlanejado - totalFalta) / totalPlanejado) * 100) : 0;
 
   // Contagens pagos
@@ -348,6 +374,12 @@ export default function Pagamentos() {
     return pago < (a.valor_contrato || 0);
   }) : [];
   const totalAtrasados = supAtrasados.length + lidAtrasados.length + admAtrasados.length;
+
+  useEffect(() => {
+    if (isRH && abaAtiva !== "admin") {
+      setAbaAtiva("admin");
+    }
+  }, [isRH, abaAtiva]);
 
   useEffect(() => {
     if (!isLoading && totalAtrasados > 0 && !alertaDismissed) {
@@ -592,7 +624,7 @@ export default function Pagamentos() {
     { id: "suplentes" as const, label: "Suplentes", icon: <List size={12} />, count: supComValor.length, pagos: supPagosN },
     { id: "liderancas" as const, label: "Lideranças", icon: <Users size={12} />, count: lidComValor.length, pagos: lidPagosN },
     { id: "admin" as const, label: "Admin", icon: <Briefcase size={12} />, count: admComValor.length, pagos: admPagosN },
-  ].filter(a => !isRH || a.id === "admin");
+  ];
 
   return (
     <PageTransition>
@@ -612,7 +644,7 @@ export default function Pagamentos() {
                   Retiradas: até o último dia do mês · Salários: até dia 10 do mês seguinte
                 </span>
                 <div className="mt-3 space-y-2 max-h-60 overflow-y-auto">
-                  {supAtrasados.length > 0 && (
+                  {!isRH && supAtrasados.length > 0 && (
                     <div>
                       <p className="text-[10px] font-bold uppercase tracking-wider text-pink-500 mb-1">Suplentes ({supAtrasados.length})</p>
                       {supAtrasados.map(s => {
@@ -626,7 +658,7 @@ export default function Pagamentos() {
                       })}
                     </div>
                   )}
-                  {lidAtrasados.length > 0 && (
+                  {!isRH && lidAtrasados.length > 0 && (
                     <div>
                       <p className="text-[10px] font-bold uppercase tracking-wider text-violet-500 mb-1">Lideranças ({lidAtrasados.length})</p>
                       {lidAtrasados.map(l => {
@@ -668,34 +700,47 @@ export default function Pagamentos() {
         </div>
 
         {/* Painel financeiro geral */}
+        {/* Painel financeiro geral - Refatorado para foco no Saldo Devedor */}
+        {/* Painel Financeiro - Ampliado para Máxima Visibilidade */}
         {!isLoading && (
-          <div className="bg-gradient-to-r from-pink-500 to-rose-400 rounded-2xl p-4 shadow-lg">
-            <div className="flex items-center gap-2 text-white/80 text-xs mb-3">
-              <Wallet size={14} /> Painel Financeiro — {MESES[mes - 1]}/{ano}
-            </div>
-            <div className="grid grid-cols-3 gap-1.5 mb-3">
-              <div className="bg-white/15 backdrop-blur rounded-xl p-2 text-center min-w-0">
-                <p className="text-white/70 text-[8px] uppercase tracking-wider font-medium">Planejado</p>
-                <p className="text-white font-bold text-xs sm:text-base leading-tight truncate">{fmt(totalPlanejado)}</p>
+          <div className="bg-gradient-to-br from-pink-600 via-rose-500 to-rose-400 rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden mb-6">
+            <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full -mr-24 -mt-24 blur-3xl" />
+            
+            <div className="relative z-10">
+              <div className="flex items-center gap-2 text-white text-[11px] font-black uppercase tracking-[0.2em] mb-6 drop-shadow-sm">
+                <Wallet size={14} className="animate-pulse" /> Painel Financeiro Geral · {MESES[mes - 1]}/{ano}
               </div>
-              <div className="bg-white/15 backdrop-blur rounded-xl p-2 text-center min-w-0">
-                <p className="text-white/70 text-[8px] uppercase tracking-wider font-medium">Pago</p>
-                <p className="text-white font-bold text-xs sm:text-base leading-tight truncate">{fmt(totalPago)}</p>
+
+              <div className="grid grid-cols-3 gap-3 mb-8">
+                <div className="bg-white/15 backdrop-blur-xl rounded-[1.5rem] p-4 border border-white/20 text-center shadow-inner">
+                  <p className="text-white/80 text-[9px] font-bold uppercase tracking-widest mb-1.5">Planejado</p>
+                  <p className="text-white font-black text-sm sm:text-lg lg:text-xl leading-none">{fmt(totalPlanejado)}</p>
+                </div>
+                <div className="bg-white/20 backdrop-blur-xl rounded-[1.5rem] p-4 border border-white/30 text-center shadow-lg">
+                  <p className="text-white/80 text-[9px] font-bold uppercase tracking-widest mb-1.5">Já Pago</p>
+                  <p className="text-white font-black text-sm sm:text-lg lg:text-xl leading-none">{fmt(totalPago)}</p>
+                </div>
+                <div className="bg-black/15 backdrop-blur-xl rounded-[1.5rem] p-4 border border-white/10 text-center shadow-inner">
+                  <p className="text-white/80 text-[9px] font-bold uppercase tracking-widest mb-1.5">Falta</p>
+                  <p className="text-white font-black text-sm sm:text-lg lg:text-xl leading-none">{fmt(totalFalta)}</p>
+                </div>
               </div>
-              <div className="bg-black/20 backdrop-blur rounded-xl p-2 text-center min-w-0">
-                <p className="text-white/70 text-[8px] uppercase tracking-wider font-medium">Falta</p>
-                <p className="text-white font-bold text-xs sm:text-base leading-tight truncate">{fmt(totalFalta)}</p>
+
+              <div className="space-y-3">
+                <div className="h-4 bg-black/20 rounded-full p-1 border border-white/10 overflow-hidden">
+                  <div 
+                    className="h-full bg-white rounded-full transition-all duration-1000 shadow-[0_0_20px_rgba(255,255,255,0.6)]" 
+                    style={{ width: `${pctGeral}%` }} 
+                  />
+                </div>
+                <div className="flex justify-between items-center text-[10px] font-black text-white uppercase tracking-wider">
+                  <span className="bg-white/20 px-2 py-0.5 rounded-md">{pctGeral.toFixed(1)}% CONCLUÍDO</span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                    {(supPagosN + lidPagosN + admPagosN)} DE {(supComValor.length + lidComValor.length + admComValor.length)} CONTRATOS
+                  </span>
+                </div>
               </div>
-            </div>
-            <div className="h-2 bg-white/20 rounded-full overflow-hidden">
-              <div className="h-full bg-white rounded-full transition-all duration-500" style={{ width: `${pctGeral}%` }} />
-            </div>
-            <div className="flex justify-between mt-1">
-              <span className="text-white/60 text-[9px]">
-                {isRH ? admPagosN : (supPagosN + lidPagosN + admPagosN)} pagos · 
-                {isRH ? (admComValor.length - admPagosN) : ((supComValor.length + lidComValor.length + admComValor.length) - (supPagosN + lidPagosN + admPagosN))} pendentes
-              </span>
-              <span className="text-white/60 text-[9px]">{pctGeral.toFixed(0)}%</span>
             </div>
           </div>
         )}
@@ -799,14 +844,35 @@ export default function Pagamentos() {
         </div>
 
         {/* Tabs: Suplentes / Lideranças / Admin */}
-        <div className="flex bg-muted rounded-xl p-1 gap-1">
-          {abas.map(a => (
-            <button key={a.id} onClick={() => { setAbaAtiva(a.id); setShowPagos(true); }}
-              className={`flex-1 flex items-center justify-center gap-1 text-[11px] font-semibold py-2 rounded-lg transition-all ${abaAtiva === a.id ? "bg-card shadow text-primary" : "text-muted-foreground"}`}>
-              {a.icon}{a.label}
-              <span className={`text-[9px] px-1 py-0.5 rounded-full font-bold ml-0.5 ${abaAtiva === a.id ? "bg-primary/10 text-primary" : "bg-muted-foreground/20"}`}>{a.count}</span>
-            </button>
-          ))}
+        <div className="grid grid-cols-3 bg-muted/50 rounded-2xl p-1.5 gap-1.5 border border-border/50 shadow-inner">
+          {abas.map(a => {
+            const isActive = abaAtiva === a.id;
+            const colorClass = a.id === "suplentes" ? "pink" : (a.id === "liderancas" ? "violet" : "blue");
+            const activeStyle = a.id === "suplentes" ? "bg-pink-500 text-white shadow-pink-500/20" : (a.id === "liderancas" ? "bg-violet-600 text-white shadow-violet-600/20" : "bg-blue-600 text-white shadow-blue-600/20");
+            
+            return (
+              <button
+                key={a.id}
+                onClick={() => setAbaAtiva(a.id)}
+                className={`flex flex-col items-center justify-center py-2.5 px-1 rounded-xl transition-all duration-300 gap-1 relative overflow-hidden ${
+                  isActive ? `${activeStyle} shadow-lg scale-[1.02] z-10` : "bg-card text-muted-foreground hover:bg-muted/80"
+                }`}
+              >
+                <div className="flex items-center gap-1.5">
+                  <span className={isActive ? "text-white" : `text-${colorClass}-500`}>{a.icon}</span>
+                  <span className="text-[10px] font-black uppercase tracking-tight">{a.label}</span>
+                </div>
+                <div className="flex flex-col items-center">
+                  <span className={`text-[11px] font-black ${isActive ? "text-white/90" : "text-foreground"}`}>
+                    {a.pagos}/{a.count}
+                  </span>
+                  <div className={`h-1 w-8 rounded-full mt-0.5 ${isActive ? "bg-white/30" : `bg-${colorClass}-500/20`}`}>
+                    <div className={`h-full rounded-full ${isActive ? "bg-white" : `bg-${colorClass}-500`}`} style={{ width: `${(a.pagos/Math.max(1, a.count))*100}%` }} />
+                  </div>
+                </div>
+              </button>
+            );
+          })}
         </div>
 
         {/* Conteúdo da aba */}

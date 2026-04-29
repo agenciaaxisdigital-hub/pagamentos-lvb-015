@@ -10,6 +10,7 @@ export function BottomNav() {
   const navigate = useNavigate();
   const [signingOut, setSigningOut] = useState(false);
   const [showMais, setShowMais] = useState(false);
+  const { isAdmin, isRH } = useCidade();
 
   const handleSignOut = async () => {
     setSigningOut(true);
@@ -17,8 +18,6 @@ export function BottomNav() {
     setSigningOut(false);
     setShowMais(false);
   };
-
-  const { isAdmin, isRH } = useCidade();
 
   const navBase =
     "flex flex-col items-center justify-center gap-0.5 text-[10px] py-2 px-1 min-w-[40px] min-h-[52px] transition-colors text-muted-foreground active:scale-90 active:opacity-70";
@@ -32,8 +31,6 @@ export function BottomNav() {
             className="absolute bottom-[64px] right-2 bg-card border border-border rounded-2xl shadow-xl p-2 w-48"
             onClick={(e) => e.stopPropagation()}
           >
-            {!isRH && (
-              <>
                 <button
                   onClick={() => { navigate("/dashboard"); setShowMais(false); }}
                   className="flex items-center gap-3 w-full px-3 py-2.5 text-sm text-foreground rounded-xl active:bg-muted hover:bg-muted/50"
@@ -56,18 +53,7 @@ export function BottomNav() {
                   <Users size={17} className="text-primary" />
                   Nova Liderança
                 </button>
-              </>
-            )}
-            <button
-              onClick={() => { navigate("/administrativo/novo"); setShowMais(false); }}
-              className="flex items-center gap-3 w-full px-3 py-2.5 text-sm text-foreground rounded-xl active:bg-muted hover:bg-muted/50"
-            >
-              <Briefcase size={17} className="text-primary" />
-              Novo Admin
-            </button>
-            <div className="h-px bg-border my-1" />
-            {isAdmin && !isRH && (
-              <>
+                <div className="h-px bg-border my-1" />
                 <button
                   onClick={() => { navigate("/usuarios"); setShowMais(false); }}
                   className="flex items-center gap-3 w-full px-3 py-2.5 text-sm text-foreground rounded-xl active:bg-muted hover:bg-muted/50"
@@ -83,8 +69,6 @@ export function BottomNav() {
                   Cidades
                 </button>
                 <div className="h-px bg-border my-1" />
-              </>
-            )}
             <button
               onClick={handleSignOut}
               disabled={signingOut}
@@ -100,8 +84,7 @@ export function BottomNav() {
       )}
 
       <nav
-        className="fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-xl border-t border-border"
-        style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+        className="fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-xl border-t border-border pb-safe"
       >
         <div className="flex justify-around items-stretch max-w-lg mx-auto">
           <NavLink to="/pagamentos" className={navBase} activeClassName={navActive}>
@@ -109,19 +92,15 @@ export function BottomNav() {
             <span>Pagamentos</span>
           </NavLink>
 
-          {!isRH && (
-            <>
-              <NavLink to="/cadastros" className={navBase} activeClassName={navActive}>
-                <List size={20} strokeWidth={1.8} />
-                <span>Suplentes</span>
-              </NavLink>
+          <NavLink to="/cadastros" className={navBase} activeClassName={navActive}>
+            <List size={20} strokeWidth={1.8} />
+            <span>Suplentes</span>
+          </NavLink>
 
-              <NavLink to="/liderancas" className={navBase} activeClassName={navActive}>
-                <Users size={20} strokeWidth={1.8} />
-                <span>Lideranças</span>
-              </NavLink>
-            </>
-          )}
+          <NavLink to="/liderancas" className={navBase} activeClassName={navActive}>
+            <Users size={20} strokeWidth={1.8} />
+            <span>Lideranças</span>
+          </NavLink>
 
           <NavLink to="/administrativo" className={navBase} activeClassName={navActive}>
             <Briefcase size={20} strokeWidth={1.8} />

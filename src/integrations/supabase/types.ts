@@ -27,6 +27,7 @@ export type Database = {
           valor_contrato: number | null
           valor_contrato_meses: number | null
           whatsapp: string | null
+          contrato_url: string | null
         }
         Insert: {
           assinatura?: string | null
@@ -40,6 +41,7 @@ export type Database = {
           valor_contrato?: number | null
           valor_contrato_meses?: number | null
           whatsapp?: string | null
+          contrato_url?: string | null
         }
         Update: {
           assinatura?: string | null
@@ -53,6 +55,7 @@ export type Database = {
           valor_contrato?: number | null
           valor_contrato_meses?: number | null
           whatsapp?: string | null
+          contrato_url?: string | null
         }
         Relationships: [
           {
