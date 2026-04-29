@@ -608,7 +608,7 @@ export function exportLiderancasExcel(list: any[]) {
   const now = `${new Date().toLocaleDateString("pt-BR")} às ${new Date().toLocaleTimeString("pt-BR")}`;
 
   const totalMensal = list.reduce((a, l) => a + (l.retirada_mensal_valor || 0), 0);
-  const totalContrato = list.reduce((a, l) => a + (l.retirada_mensal_valor || 0) * (l.retirada_ate_mes || 10), 0);
+  const totalContrato = list.reduce((a, l) => a + (l.retirada_mensal_valor || 0) * (l.retirada_mensal_meses || 0), 0);
 
   const rows: any[][] = [
     ["DRA. FERNANDA SARELLI — PAINEL DE LIDERANÇAS"],
@@ -638,7 +638,7 @@ export function exportLiderancasExcel(list: any[]) {
       l.chave_pix || "",
       l.retirada_mensal_valor || 0,
       l.retirada_ate_mes || 10,
-      (l.retirada_mensal_valor || 0) * (l.retirada_ate_mes || 10),
+      (l.retirada_mensal_valor || 0) * (l.retirada_mensal_meses || 0),
     ]);
   });
 
@@ -737,14 +737,14 @@ export function exportLiderancaPDF(l: any) {
   y += 4;
 
   const valorMensal = l.retirada_mensal_valor || 0;
-  const ateMes = l.retirada_ate_mes || 10;
-  const total = valorMensal * ateMes;
+  const meses = l.retirada_mensal_meses || 0;
+  const total = valorMensal * meses;
 
   autoTable(doc, {
     startY: y,
     head: [["Item", "Detalhe", "Valor"]],
     body: [
-      ["Retirada Mensal", `${fmt(valorMensal)} × ${ateMes} meses`, fmt(total)],
+      ["Retirada Mensal", `${fmt(valorMensal)} × ${meses} meses`, fmt(total)],
     ],
     foot: [["TOTAL DO CONTRATO", "", fmt(total)]],
     margin: { left: 14, right: 14 },

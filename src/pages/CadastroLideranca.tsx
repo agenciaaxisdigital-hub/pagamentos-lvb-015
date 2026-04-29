@@ -181,7 +181,7 @@ export default function CadastroLideranca() {
 
   if (isLoading) return <div className="flex items-center justify-center h-40"><Loader2 className="animate-spin text-primary" /></div>;
 
-  const totalContrato = (form.retirada_mensal_valor || 0) * (form.retirada_ate_mes || 0);
+  const totalContrato = (form.retirada_mensal_valor || 0) * (form.retirada_mensal_meses || 0);
 
   return (
     <PageTransition>

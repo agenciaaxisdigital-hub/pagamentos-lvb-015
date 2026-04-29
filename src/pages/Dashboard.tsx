@@ -263,6 +263,9 @@ export default function Dashboard() {
       const plotagemQtd = supCidade.reduce((a: number, s: any) => a + (s.plotagem_qtd || 0), 0);
       const lidMensal = lidCidade.reduce((a: number, l: any) => a + (l.retirada_mensal_valor || 0), 0);
       const orcLid = lidCidade.reduce((a: number, l: any) => {
+        const duracao = l.retirada_mensal_meses || 0;
+        if (duracao > 0) return a + (l.retirada_mensal_valor || 0) * duracao;
+        
         const inicio = eligibilidadeMap[l.id] || MES_INICIO_LID;
         const ateMes = Math.min(l.retirada_ate_mes || MES_FIM, MES_FIM);
         const mesesAtivos = Math.max(0, ateMes - inicio + 1);
@@ -270,6 +273,9 @@ export default function Dashboard() {
       }, 0);
       const admMensal = admCidade.reduce((a: number, ad: any) => a + (ad.valor_contrato || 0), 0);
       const orcAdm = admCidade.reduce((a: number, ad: any) => {
+        const duracao = ad.valor_contrato_meses || 0;
+        if (duracao > 0) return a + (ad.valor_contrato || 0) * duracao;
+
         const inicio = eligibilidadeMap[ad.id] || MES_INICIO_ADM;
         const ateMes = Math.min(ad.contrato_ate_mes || MES_FIM, MES_FIM);
         const mesesAtivos = Math.max(0, ateMes - inicio + 1);
