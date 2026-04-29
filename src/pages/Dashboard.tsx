@@ -84,6 +84,31 @@ export default function Dashboard() {
   const globalAdm = allAdministrativo ?? [];
   const globalPag = pagamentos ?? [];
 
+  // Pre-calcular eligibilidade para evitar O(N*M) dentro de loops de redução
+  const eligibilidadeMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    if (isLoading) return map;
+    
+    [...globalSup, ...globalLid, ...globalAdm].forEach(p => {
+      const tipo = (p as any).retirada_mensal_valor !== undefined 
+        ? ((p as any).regiao_atuacao !== undefined ? "suplente" : "lideranca") 
+        : "admin";
+      
+      const cat = tipo === "admin" ? "salario" : "retirada";
+      const inicioG = tipo === "suplente" ? MES_INICIO_SUP : (tipo === "lideranca" ? MES_INICIO_LID : MES_INICIO_ADM);
+      
+      map[p.id] = getMesInicioComHistorico({
+        tipo: tipo as any,
+        pessoaId: p.id,
+        createdAt: (p as any).created_at,
+        mesInicioGlobal: inicioG,
+        pagamentos: globalPag,
+        categoria: cat,
+      });
+    });
+    return map;
+  }, [globalSup, globalLid, globalAdm, globalPag, isLoading]);
+
   // ─── FILTERED LISTS (for search/export only) ─────────────────────
   const supList = useMemo(() => {
     let all = globalSup;
@@ -152,10 +177,7 @@ export default function Dashboard() {
       let supMes = 0, lidMes = 0, admMes = 0;
       if (m >= MES_INICIO_SUP) {
         supMes = globalSup.reduce((a: number, s: any) => {
-          const inicio = getMesInicioComHistorico({
-            tipo: "suplente", pessoaId: s.id, createdAt: s.created_at,
-            mesInicioGlobal: MES_INICIO_SUP, pagamentos: globalPag, categoria: "retirada",
-          });
+          const inicio = eligibilidadeMap[s.id] || MES_INICIO_SUP;
           const numMeses = s.retirada_mensal_meses || 0;
           const mesFimCalc = inicio + numMeses - 1;
           const mesFim = Math.min(mesFimCalc, MES_FIM);
@@ -164,20 +186,14 @@ export default function Dashboard() {
       }
       if (m >= MES_INICIO_LID) {
         lidMes = globalLid.reduce((a: number, l: any) => {
-          const inicio = getMesInicioComHistorico({
-            tipo: "lideranca", pessoaId: l.id, createdAt: l.created_at,
-            mesInicioGlobal: MES_INICIO_LID, pagamentos: globalPag, categoria: "retirada",
-          });
+          const inicio = eligibilidadeMap[l.id] || MES_INICIO_LID;
           const ateMes = l.retirada_ate_mes || MES_FIM;
           return (m >= inicio && m <= ateMes) ? a + (l.retirada_mensal_valor || 0) : a;
         }, 0);
       }
       if (m >= MES_INICIO_ADM) {
         admMes = globalAdm.reduce((a: number, ad: any) => {
-          const inicio = getMesInicioComHistorico({
-            tipo: "admin", pessoaId: ad.id, createdAt: ad.created_at,
-            mesInicioGlobal: MES_INICIO_ADM, pagamentos: globalPag, categoria: "salario",
-          });
+          const inicio = eligibilidadeMap[ad.id] || MES_INICIO_ADM;
           const ateMes = ad.contrato_ate_mes || MES_FIM;
           return (m >= inicio && m <= ateMes) ? a + (ad.valor_contrato || 0) : a;
         }, 0);
@@ -193,17 +209,17 @@ export default function Dashboard() {
       });
     }
     return meses;
-  }, [globalSup, globalLid, globalAdm, globalPag]);
+  }, [globalSup, globalLid, globalAdm, globalPag, eligibilidadeMap]);
 
-  const totalPrevistoAno = fluxoMensal.reduce((a, m) => a + m.total, 0);
+  const totalPrevistoAno = useMemo(() => fluxoMensal.reduce((a, m) => a + m.total, 0), [fluxoMensal]);
   const custosPontuais = financials.totalPlotagemVal + financials.totalLiderancasVal + financials.totalFiscaisVal;
   const orcamentoTotal = totalPrevistoAno + custosPontuais;
-  const totalPagoAno = globalPag.filter(p => p.ano === 2026).reduce((a, p) => a + (p.valor || 0), 0);
+  const totalPagoAno = useMemo(() => globalPag.filter(p => p.ano === 2026).reduce((a, p) => a + (p.valor || 0), 0), [globalPag]);
   const saldoRestante = orcamentoTotal - totalPagoAno;
 
-  const totalSupFluxo = fluxoMensal.reduce((a, m) => a + m.suplentes, 0);
-  const totalLidFluxo = fluxoMensal.reduce((a, m) => a + m.liderancas, 0);
-  const totalAdmFluxo = fluxoMensal.reduce((a, m) => a + m.admin, 0);
+  const totalSupFluxo = useMemo(() => fluxoMensal.reduce((a, m) => a + m.suplentes, 0), [fluxoMensal]);
+  const totalLidFluxo = useMemo(() => fluxoMensal.reduce((a, m) => a + m.liderancas, 0), [fluxoMensal]);
+  const totalAdmFluxo = useMemo(() => fluxoMensal.reduce((a, m) => a + m.admin, 0), [fluxoMensal]);
 
   const pieData = useMemo(() => [
     { name: "Suplentes", value: totalSupFluxo + custosPontuais, fill: COLORS_CAT.suplentes },
@@ -235,20 +251,14 @@ export default function Dashboard() {
       const plotagemQtd = supCidade.reduce((a: number, s: any) => a + (s.plotagem_qtd || 0), 0);
       const lidMensal = lidCidade.reduce((a: number, l: any) => a + (l.retirada_mensal_valor || 0), 0);
       const orcLid = lidCidade.reduce((a: number, l: any) => {
-        const inicio = getMesInicioComHistorico({
-          tipo: "lideranca", pessoaId: l.id, createdAt: l.created_at,
-          mesInicioGlobal: MES_INICIO_LID, pagamentos: aPag, categoria: "retirada",
-        });
+        const inicio = eligibilidadeMap[l.id] || MES_INICIO_LID;
         const ateMes = Math.min(l.retirada_ate_mes || MES_FIM, MES_FIM);
         const mesesAtivos = Math.max(0, ateMes - inicio + 1);
         return a + (l.retirada_mensal_valor || 0) * mesesAtivos;
       }, 0);
       const admMensal = admCidade.reduce((a: number, ad: any) => a + (ad.valor_contrato || 0), 0);
       const orcAdm = admCidade.reduce((a: number, ad: any) => {
-        const inicio = getMesInicioComHistorico({
-          tipo: "admin", pessoaId: ad.id, createdAt: ad.created_at,
-          mesInicioGlobal: MES_INICIO_ADM, pagamentos: aPag, categoria: "salario",
-        });
+        const inicio = eligibilidadeMap[ad.id] || MES_INICIO_ADM;
         const ateMes = Math.min(ad.contrato_ate_mes || MES_FIM, MES_FIM);
         const mesesAtivos = Math.max(0, ateMes - inicio + 1);
         return a + (ad.valor_contrato || 0) * mesesAtivos;
@@ -280,7 +290,7 @@ export default function Dashboard() {
         admCidade: admCidade as AdminPessoa[],
       };
     }).filter(c => c.orcamento > 0 || c.suplentes > 0 || c.liderancasCount > 0 || c.admin > 0);
-  }, [municipios, globalSup, globalLid, globalAdm, globalPag]);
+  }, [municipios, globalSup, globalLid, globalAdm, globalPag, eligibilidadeMap]);
 
   const mesAtual = new Date().getMonth() + 1;
 

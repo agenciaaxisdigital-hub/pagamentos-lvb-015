@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,6 +37,7 @@ interface FormData {
   fiscais_qtd: number;
   fiscais_valor_unit: number;
   assinatura: string;
+  vinculado_id: string;
 }
 
 // Meses restantes até setembro (MES_FIM = 9), mínimo 1
@@ -66,6 +67,7 @@ const defaultForm: FormData = {
   fiscais_qtd: 0,
   fiscais_valor_unit: 110,
   assinatura: "",
+  vinculado_id: "",
 };
 
 interface Props {
@@ -100,6 +102,7 @@ function buildFormState(initial?: Props["initial"]): FormData {
     fiscais_qtd: Number(initial?.fiscais_qtd ?? defaultForm.fiscais_qtd),
     fiscais_valor_unit: Number(initial?.fiscais_valor_unit ?? defaultForm.fiscais_valor_unit),
     assinatura: initial?.assinatura ?? defaultForm.assinatura,
+    vinculado_id: (initial as any)?.vinculado_id ?? defaultForm.vinculado_id,
   };
 }
 
@@ -311,6 +314,23 @@ export default function Cadastro({ initial, onSaved }: Props) {
             </Select>
           </Field>
         </div>
+
+        <Field label="Vínculo com outro Suplente">
+          <Select value={form.vinculado_id || "none"} onValueChange={(v) => set("vinculado_id", v === "none" ? "" : v)}>
+            <SelectTrigger className="bg-card shadow-sm border-border h-11">
+              <SelectValue placeholder="Selecione um suplente para vincular" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Nenhum vínculo</SelectItem>
+              {(suplentesList || [])
+                .filter((s: any) => s.id !== (initial as any)?.id)
+                .map((s: any) => (
+                  <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
+          <p className="text-[10px] text-muted-foreground">Opcional: use para agrupar suplentes que trabalham juntos ou em apoio.</p>
+        </Field>
 
         <div className="grid grid-cols-2 gap-3">
           <Field label="Votos Eleição Passada" required>

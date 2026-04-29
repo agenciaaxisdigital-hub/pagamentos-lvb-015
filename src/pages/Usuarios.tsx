@@ -4,9 +4,11 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { UserPlus, Eye, EyeOff, Loader2, Trash2, KeyRound, X, User } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { UserPlus, Eye, EyeOff, Loader2, Trash2, KeyRound, X, User, ShieldCheck, Briefcase } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { PageTransition } from "@/components/PageTransition";
+import { cn } from "@/lib/utils";
 
 function usernameFromEmail(email: string) {
   return email.replace("@painel.sarelli.com", "").replace("@sistema.local", "");
@@ -17,6 +19,7 @@ export default function Usuarios() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [cargo, setCargo] = useState("admin");
 
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [editingUsername, setEditingUsername] = useState("");
@@ -32,7 +35,7 @@ export default function Usuarios() {
         body: { action: "list" },
       });
       if (error || data?.error) throw new Error(data?.error || error?.message);
-      return data.users as { id: string; email: string; created_at: string }[];
+      return data.users as { id: string; email: string; cargo: string; created_at: string }[];
     },
   });
 
@@ -41,7 +44,7 @@ export default function Usuarios() {
     if (!username.trim() || !password.trim()) return;
     setLoading(true);
     const { data, error } = await supabase.functions.invoke("create-user", {
-      body: { username: username.trim(), password },
+      body: { username: username.trim(), password, cargo },
     });
     setLoading(false);
     if (error || data?.error) {
@@ -133,6 +136,34 @@ export default function Usuarios() {
             </div>
           </div>
 
+          <div className="space-y-1.5">
+            <Label className="text-sm text-muted-foreground">Tipo de Acesso (Cargo)</Label>
+            <Select value={cargo} onValueChange={setCargo}>
+              <SelectTrigger className="bg-card shadow-sm border-border h-11">
+                <SelectValue placeholder="Selecione o cargo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="admin">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck size={14} className="text-primary" />
+                    <span>Admin Geral (Acesso Total)</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="administrativo">
+                  <div className="flex items-center gap-2">
+                    <Briefcase size={14} className="text-violet-500" />
+                    <span>Gestor Administrativo (Apenas Administrativo)</span>
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-[11px] text-muted-foreground">
+              {cargo === "admin" 
+                ? "Tem acesso a todas as abas: Pagamentos, Lideranças, Suplentes e Configurações." 
+                : "Acesso restrito: Consegue ver apenas a aba Admin e realizar pagamentos do setor Administrativo."}
+            </p>
+          </div>
+
           <Button type="submit" disabled={loading} className="w-full gap-2 h-12 text-base font-semibold active:scale-[0.98] transition-transform">
             {loading ? <Loader2 size={18} className="animate-spin" /> : <UserPlus size={18} />}
             {loading ? "Criando..." : "Criar Usuário"}
@@ -163,7 +194,15 @@ export default function Usuarios() {
                         <User size={16} className="text-primary" />
                       </div>
                       <div className="min-w-0">
-                        <p className="font-semibold text-foreground text-sm truncate">{name}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-semibold text-foreground text-sm truncate">{name}</p>
+                          <span className={cn(
+                            "text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-tighter",
+                            u.cargo === "administrativo" ? "bg-violet-100 text-violet-600" : "bg-primary/10 text-primary"
+                          )}>
+                            {u.cargo === "administrativo" ? "Gestor ADM" : "Admin"}
+                          </span>
+                        </div>
                         <p className="text-[11px] text-muted-foreground">
                           Criado em {new Date(u.created_at).toLocaleDateString("pt-BR")}
                         </p>

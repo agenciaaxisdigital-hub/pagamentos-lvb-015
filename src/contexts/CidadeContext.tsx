@@ -16,6 +16,7 @@ interface CidadeContextType {
   cidadeAtivaNome: string;
   setCidadeAtiva: (id: string | null) => void;
   isAdmin: boolean;
+  isRH: boolean;
   loading: boolean;
   refetchMunicipios: () => Promise<void>;
 }
@@ -26,6 +27,7 @@ const CidadeContext = createContext<CidadeContextType>({
   cidadeAtivaNome: "Todas as Cidades",
   setCidadeAtiva: () => {},
   isAdmin: false,
+  isRH: false,
   loading: true,
   refetchMunicipios: async () => {},
 });
@@ -42,6 +44,7 @@ export function CidadeProvider({ children }: { children: React.ReactNode }) {
     return stored && stored !== "todas" ? stored : null;
   });
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isRH, setIsRH] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const fetchMunicipios = useCallback(async () => {
@@ -80,10 +83,16 @@ export function CidadeProvider({ children }: { children: React.ReactNode }) {
     setIsAdmin(!!data);
   }, [user]);
 
-  // Paralelizar fetchMunicipios + checkAdmin
+  const checkRH = useCallback(async () => {
+    if (!user) { setIsRH(false); return; }
+    const { data } = await supabase.rpc("has_role", { _user_id: user.id, _role: "administrativo" });
+    setIsRH(!!data);
+  }, [user]);
+
+  // Paralelizar fetchMunicipios + checkAdmin + checkRH
   useEffect(() => {
     const t0 = performance.now();
-    Promise.all([fetchMunicipios(), checkAdmin()])
+    Promise.all([fetchMunicipios(), checkAdmin(), checkRH()])
       .then(() => {
         console.log(`[CidadeProvider] Init completed in ${(performance.now() - t0).toFixed(0)}ms`);
       })
@@ -115,9 +124,10 @@ export function CidadeProvider({ children }: { children: React.ReactNode }) {
     cidadeAtivaNome,
     setCidadeAtiva,
     isAdmin,
+    isRH,
     loading,
     refetchMunicipios: fetchMunicipios,
-  }), [municipios, cidadeAtiva, cidadeAtivaNome, setCidadeAtiva, isAdmin, loading, fetchMunicipios]);
+  }), [municipios, cidadeAtiva, cidadeAtivaNome, setCidadeAtiva, isAdmin, isRH, loading, fetchMunicipios]);
 
   return (
     <CidadeContext.Provider value={value}>

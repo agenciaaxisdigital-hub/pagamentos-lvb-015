@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
@@ -26,7 +26,9 @@ export default function Cadastros() {
     queryKey: ["suplentes", cidadeAtiva],
     queryFn: async () => {
       let query = (supabase as any).from("suplentes").select("id, nome, numero_urna, bairro, regiao_atuacao, partido, situacao, total_votos, expectativa_votos, retirada_mensal_valor, retirada_mensal_meses, plotagem_qtd, plotagem_valor_unit, liderancas_qtd, liderancas_valor_unit, fiscais_qtd, fiscais_valor_unit, total_campanha, municipio_id, base_politica, telefone, cargo_disputado, ano_eleicao, assinatura").order("nome");
-      if (cidadeAtiva) query = query.eq("municipio_id", cidadeAtiva);
+      if (cidadeAtiva) {
+        query = query.or(`municipio_id.eq.${cidadeAtiva},municipio_id.is.null`);
+      }
       const { data, error } = await query;
       if (error) throw error;
       return data;
@@ -35,18 +37,27 @@ export default function Cadastros() {
   });
 
   const normalizeStr = (str: string) =>
-    str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    (str || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
-  const filtered = suplentes?.filter((s: any) => {
-    if (!search.trim()) return true;
+  const filtered = useMemo(() => {
+    if (!suplentes) return [];
+    if (!search.trim()) return suplentes;
     const term = normalizeStr(search);
-    const fields = [s.nome, s.bairro, s.regiao_atuacao, s.numero_urna, s.partido, s.base_politica, s.situacao];
-    return fields.some(f => f && normalizeStr(f).includes(term));
-  }) ?? [];
+    return suplentes.filter((s: any) => {
+      const fields = [s.nome, s.bairro, s.regiao_atuacao, s.numero_urna, s.partido, s.base_politica, s.situacao];
+      return fields.some(f => f && normalizeStr(f).includes(term));
+    });
+  }, [suplentes, search]);
 
   const fmt = (v: number) => (v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-  const editing = editingId ? suplentes?.find((s: any) => s.id === editingId) : null;
+  const nomesMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    (suplentes || []).forEach((s: any) => { map[s.id] = s.nome; });
+    return map;
+  }, [suplentes]);
+
+  const editing = useMemo(() => editingId ? suplentes?.find((s: any) => s.id === editingId) : null, [suplentes, editingId]);
 
   const handleDelete = async (id: string, nome: string) => {
     if (!confirm(`Excluir "${nome}"?`)) return;
@@ -61,24 +72,29 @@ export default function Cadastros() {
     }
   };
 
+  // Funções de validação agora são manuais (removidas do useEffect)
   const runAutoValidateTotals = async () => {
+    toast({ title: "Validando totais...", description: "Por favor aguarde." });
     try {
       const results = await validateAllFinancials();
       if (results.length > 0) {
         const fixed = results.filter((r) => r.updated).length;
         const withIssues = results.filter((r) => r.issues.length > 0).length;
         toast({
-          title: `Validacao concluida: ${results.length} divergencia(s)`,
+          title: `Validação concluída: ${results.length} divergência(s)`,
           description: `${fixed} total(is) corrigido(s) automaticamente${withIssues > 0 ? `, ${withIssues} com alerta(s)` : ""}.`,
         });
         refetch();
+      } else {
+        toast({ title: "Tudo certo!", description: "Nenhuma divergência encontrada." });
       }
     } catch (e: any) {
-      console.error("Erro na validacao automatica de totais:", e?.message || e);
+      console.error("Erro na validação automática de totais:", e?.message || e);
     }
   };
 
   const runAutoValidateRequiredData = async () => {
+    toast({ title: "Buscando dados no TSE...", description: "Isso pode levar alguns segundos." });
     try {
       const results = await validateRequiredData();
       if (results.length > 0) {
@@ -89,21 +105,13 @@ export default function Cadastros() {
           description: `Campos atualizados via TSE: ${campos.join(", ")}`,
         });
         refetch();
+      } else {
+        toast({ title: "Tudo certo!", description: "Dados já estão sincronizados com o TSE." });
       }
     } catch (e: any) {
-      console.error("Erro na validacao automatica de dados obrigatorios:", e?.message || e);
+      console.error("Erro na validação automática de dados obrigatórios:", e?.message || e);
     }
   };
-
-  useEffect(() => {
-    runAutoValidateRequiredData();
-    runAutoValidateTotals();
-    const intervalId = window.setInterval(() => {
-      runAutoValidateRequiredData();
-      runAutoValidateTotals();
-    }, 60 * 60 * 1000);
-    return () => window.clearInterval(intervalId);
-  }, []);
 
   if (editing) {
     return (
@@ -145,27 +153,23 @@ export default function Cadastros() {
               <FileDown size={14} />
               Excel
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => exportFichasLotePDF(filtered)}
-              disabled={filtered.length === 0}
-              className="text-xs gap-1.5 active:scale-95 transition-transform"
-            >
-              <FileDown size={14} />
-              PDF
-            </Button>
           </div>
         </div>
 
-        <div className="relative">
-          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por nome, bairro, região ou nº urna..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10 bg-card border-border"
-          />
+        <div className="flex flex-col sm:flex-row gap-2">
+          <div className="relative flex-1">
+            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por nome, bairro, região ou nº urna..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-10 bg-card border-border"
+            />
+          </div>
+          <div className="flex gap-2">
+             <Button variant="outline" size="sm" onClick={runAutoValidateTotals} className="text-[10px] h-10 flex-1 sm:flex-none">Revisar Totais</Button>
+             <Button variant="outline" size="sm" onClick={runAutoValidateRequiredData} className="text-[10px] h-10 flex-1 sm:flex-none">Sincronizar TSE</Button>
+          </div>
         </div>
 
         {isLoading ? (
@@ -207,6 +211,12 @@ export default function Cadastros() {
                           <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
                             {s.partido && <span className="text-[10px] font-semibold bg-primary/10 text-primary px-1.5 py-0.5 rounded-md">{s.partido}</span>}
                             {s.situacao && <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{s.situacao}</span>}
+                            {s.vinculado_id && nomesMap[s.vinculado_id] && (
+                                <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-tight px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-500/10 to-orange-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 shadow-sm">
+                                  <div className="w-1 h-1 rounded-full bg-amber-500 animate-pulse" />
+                                  Vínculo: {nomesMap[s.vinculado_id]}
+                                </span>
+                            )}
                           </div>
                           <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
                             {s.regiao_atuacao && (

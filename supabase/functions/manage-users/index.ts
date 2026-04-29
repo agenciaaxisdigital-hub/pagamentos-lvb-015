@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
       // List from usuarios table instead of auth.admin.listUsers() to avoid NULL email_change bug
       const { data, error } = await supabaseAdmin
         .from("usuarios")
-        .select("id, user_id, nome_usuario, email, criado_em")
+        .select("id, user_id, nome_usuario, email, cargo, criado_em")
         .order("criado_em", { ascending: false });
 
       if (error) {
@@ -45,6 +45,7 @@ Deno.serve(async (req) => {
         id: u.user_id,
         email: u.email,
         nome_usuario: u.nome_usuario,
+        cargo: u.cargo || 'admin',
         created_at: u.criado_em,
       }));
 

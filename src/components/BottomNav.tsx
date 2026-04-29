@@ -1,6 +1,7 @@
 import { NavLink } from "@/components/NavLink";
 import { Wallet, List, Users, Briefcase, MoreHorizontal, BarChart3, UserCog, LogOut, Plus, MapPin } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useCidade } from "@/contexts/CidadeContext";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -17,6 +18,8 @@ export function BottomNav() {
     setShowMais(false);
   };
 
+  const { isAdmin, isRH } = useCidade();
+
   const navBase =
     "flex flex-col items-center justify-center gap-0.5 text-[10px] py-2 px-1 min-w-[40px] min-h-[52px] transition-colors text-muted-foreground active:scale-90 active:opacity-70";
   const navActive = "text-primary font-semibold";
@@ -29,28 +32,32 @@ export function BottomNav() {
             className="absolute bottom-[64px] right-2 bg-card border border-border rounded-2xl shadow-xl p-2 w-48"
             onClick={(e) => e.stopPropagation()}
           >
-            <button
-              onClick={() => { navigate("/dashboard"); setShowMais(false); }}
-              className="flex items-center gap-3 w-full px-3 py-2.5 text-sm text-foreground rounded-xl active:bg-muted hover:bg-muted/50"
-            >
-              <BarChart3 size={17} className="text-primary" />
-              Dashboard
-            </button>
-            <div className="h-px bg-border my-1" />
-            <button
-              onClick={() => { navigate("/cadastros/novo"); setShowMais(false); }}
-              className="flex items-center gap-3 w-full px-3 py-2.5 text-sm text-foreground rounded-xl active:bg-muted hover:bg-muted/50"
-            >
-              <Plus size={17} className="text-primary" />
-              Novo Suplente
-            </button>
-            <button
-              onClick={() => { navigate("/liderancas/novo"); setShowMais(false); }}
-              className="flex items-center gap-3 w-full px-3 py-2.5 text-sm text-foreground rounded-xl active:bg-muted hover:bg-muted/50"
-            >
-              <Users size={17} className="text-primary" />
-              Nova Liderança
-            </button>
+            {!isRH && (
+              <>
+                <button
+                  onClick={() => { navigate("/dashboard"); setShowMais(false); }}
+                  className="flex items-center gap-3 w-full px-3 py-2.5 text-sm text-foreground rounded-xl active:bg-muted hover:bg-muted/50"
+                >
+                  <BarChart3 size={17} className="text-primary" />
+                  Dashboard
+                </button>
+                <div className="h-px bg-border my-1" />
+                <button
+                  onClick={() => { navigate("/cadastros/novo"); setShowMais(false); }}
+                  className="flex items-center gap-3 w-full px-3 py-2.5 text-sm text-foreground rounded-xl active:bg-muted hover:bg-muted/50"
+                >
+                  <Plus size={17} className="text-primary" />
+                  Novo Suplente
+                </button>
+                <button
+                  onClick={() => { navigate("/liderancas/novo"); setShowMais(false); }}
+                  className="flex items-center gap-3 w-full px-3 py-2.5 text-sm text-foreground rounded-xl active:bg-muted hover:bg-muted/50"
+                >
+                  <Users size={17} className="text-primary" />
+                  Nova Liderança
+                </button>
+              </>
+            )}
             <button
               onClick={() => { navigate("/administrativo/novo"); setShowMais(false); }}
               className="flex items-center gap-3 w-full px-3 py-2.5 text-sm text-foreground rounded-xl active:bg-muted hover:bg-muted/50"
@@ -59,21 +66,25 @@ export function BottomNav() {
               Novo Admin
             </button>
             <div className="h-px bg-border my-1" />
-            <button
-              onClick={() => { navigate("/usuarios"); setShowMais(false); }}
-              className="flex items-center gap-3 w-full px-3 py-2.5 text-sm text-foreground rounded-xl active:bg-muted hover:bg-muted/50"
-            >
-              <UserCog size={17} className="text-primary" />
-              Usuários
-            </button>
-            <button
-              onClick={() => { navigate("/cidades"); setShowMais(false); }}
-              className="flex items-center gap-3 w-full px-3 py-2.5 text-sm text-foreground rounded-xl active:bg-muted hover:bg-muted/50"
-            >
-              <MapPin size={17} className="text-primary" />
-              Cidades
-            </button>
-            <div className="h-px bg-border my-1" />
+            {isAdmin && !isRH && (
+              <>
+                <button
+                  onClick={() => { navigate("/usuarios"); setShowMais(false); }}
+                  className="flex items-center gap-3 w-full px-3 py-2.5 text-sm text-foreground rounded-xl active:bg-muted hover:bg-muted/50"
+                >
+                  <UserCog size={17} className="text-primary" />
+                  Usuários
+                </button>
+                <button
+                  onClick={() => { navigate("/cidades"); setShowMais(false); }}
+                  className="flex items-center gap-3 w-full px-3 py-2.5 text-sm text-foreground rounded-xl active:bg-muted hover:bg-muted/50"
+                >
+                  <MapPin size={17} className="text-primary" />
+                  Cidades
+                </button>
+                <div className="h-px bg-border my-1" />
+              </>
+            )}
             <button
               onClick={handleSignOut}
               disabled={signingOut}
@@ -98,15 +109,19 @@ export function BottomNav() {
             <span>Pagamentos</span>
           </NavLink>
 
-          <NavLink to="/cadastros" className={navBase} activeClassName={navActive}>
-            <List size={20} strokeWidth={1.8} />
-            <span>Suplentes</span>
-          </NavLink>
+          {!isRH && (
+            <>
+              <NavLink to="/cadastros" className={navBase} activeClassName={navActive}>
+                <List size={20} strokeWidth={1.8} />
+                <span>Suplentes</span>
+              </NavLink>
 
-          <NavLink to="/liderancas" className={navBase} activeClassName={navActive}>
-            <Users size={20} strokeWidth={1.8} />
-            <span>Lideranças</span>
-          </NavLink>
+              <NavLink to="/liderancas" className={navBase} activeClassName={navActive}>
+                <Users size={20} strokeWidth={1.8} />
+                <span>Lideranças</span>
+              </NavLink>
+            </>
+          )}
 
           <NavLink to="/administrativo" className={navBase} activeClassName={navActive}>
             <Briefcase size={20} strokeWidth={1.8} />

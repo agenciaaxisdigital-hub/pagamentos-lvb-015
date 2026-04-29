@@ -23,6 +23,7 @@ interface FormData {
   valor_contrato: number;
   contrato_ate_mes: number;
   assinatura: string;
+  suplente_id: string | null;
 }
 
 const defaultForm: FormData = {
@@ -32,6 +33,7 @@ const defaultForm: FormData = {
   valor_contrato: 0,
   contrato_ate_mes: 9,
   assinatura: "",
+  suplente_id: null,
 };
 
 const fmt = (v: number) => (v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -43,6 +45,19 @@ export default function CadastroAdmin() {
   const { cidadeAtiva, municipios } = useCidade();
   const [selectedMunicipio, setSelectedMunicipio] = useState<string>(cidadeAtiva || "");
   const [showSignature, setShowSignature] = useState(false);
+
+  const { data: suplentes } = useQuery({
+    queryKey: ["suplentes-select", selectedMunicipio || cidadeAtiva],
+    queryFn: async () => {
+      let query = supabase.from("suplentes").select("id, nome");
+      if (selectedMunicipio || cidadeAtiva) {
+        query = query.eq("municipio_id", selectedMunicipio || cidadeAtiva);
+      }
+      const { data, error } = await query;
+      if (error) return [];
+      return data;
+    }
+  });
 
   const { data: existing, isLoading } = useQuery({
     queryKey: ["admin_pessoa", id],
@@ -66,6 +81,7 @@ export default function CadastroAdmin() {
       valor_contrato: existing.valor_contrato || 0,
       contrato_ate_mes: existing.contrato_ate_mes || 9,
       assinatura: existing.assinatura || "",
+      suplente_id: existing.suplente_id || null,
     });
     setSelectedMunicipio(existing.municipio_id || cidadeAtiva || "");
     setInitialized(true);
@@ -150,6 +166,20 @@ export default function CadastroAdmin() {
               <Input value={form.whatsapp} onChange={(e) => set("whatsapp", e.target.value)} placeholder="(62) 99999-9999" inputMode="tel" className="bg-card shadow-sm border-border" />
             </Field>
           </div>
+
+          <Field label="Vínculo com Suplente">
+            <Select value={form.suplente_id || "none"} onValueChange={(v) => set("suplente_id", v === "none" ? null : v)}>
+              <SelectTrigger className="bg-card shadow-sm border-border">
+                <SelectValue placeholder="Selecione um suplente (opcional)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Nenhum vínculo</SelectItem>
+                {(suplentes || []).map(s => (
+                  <SelectItem key={s.id} value={s.id}>👤 {s.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
         </section>
 
         <section className="bg-card rounded-2xl border border-border p-4 space-y-3 shadow-sm">

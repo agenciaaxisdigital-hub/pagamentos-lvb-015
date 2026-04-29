@@ -90,10 +90,13 @@ function PageFallback() {
 }
 
 // ─── Rotas protegidas ────────────────────────────────────────────────────
+import { useCidade } from "@/contexts/CidadeContext";
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
+function ProtectedRoute({ children, allowedForRH = false }: { children: React.ReactNode; allowedForRH?: boolean }) {
   const { user, loading } = useAuth();
-  if (loading) {
+  const { isRH, loading: loadingCidade } = useCidade();
+  
+  if (loading || loadingCidade) {
     return (
       <div className="min-h-[100dvh] flex flex-col items-center justify-center gap-3 bg-muted">
         <div className="w-10 h-10 rounded-full border-2 border-primary border-t-transparent animate-spin" />
@@ -101,7 +104,14 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
+  
   if (!user) return <Navigate to="/login" replace />;
+  
+  // Se for RH e a página não for permitida para RH, redireciona para administrativo
+  if (isRH && !allowedForRH) {
+    return <Navigate to="/administrativo" replace />;
+  }
+  
   return <Layout>{children}</Layout>;
 }
 
@@ -150,19 +160,19 @@ const App = () => {
             <Suspense fallback={<PageFallback />}>
               <Routes>
                 <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-                <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+                <Route path="/" element={<ProtectedRoute allowedForRH={true}><Index /></ProtectedRoute>} />
                 <Route path="/cadastros" element={<ProtectedRoute><Cadastros /></ProtectedRoute>} />
                 <Route path="/cadastros/novo" element={<ProtectedRoute><Cadastro /></ProtectedRoute>} />
                 <Route path="/cadastros/:id" element={<ProtectedRoute><Cadastros /></ProtectedRoute>} />
                 <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                 <Route path="/usuarios" element={<ProtectedRoute><Usuarios /></ProtectedRoute>} />
-                <Route path="/pagamentos" element={<ProtectedRoute><Pagamentos /></ProtectedRoute>} />
+                <Route path="/pagamentos" element={<ProtectedRoute allowedForRH={true}><Pagamentos /></ProtectedRoute>} />
                 <Route path="/liderancas" element={<ProtectedRoute><ListaLiderancas /></ProtectedRoute>} />
                 <Route path="/liderancas/novo" element={<ProtectedRoute><CadastroLideranca /></ProtectedRoute>} />
                 <Route path="/liderancas/:id" element={<ProtectedRoute><CadastroLideranca /></ProtectedRoute>} />
-                <Route path="/administrativo" element={<ProtectedRoute><ListaAdmin /></ProtectedRoute>} />
-                <Route path="/administrativo/novo" element={<ProtectedRoute><CadastroAdmin /></ProtectedRoute>} />
-                <Route path="/administrativo/:id" element={<ProtectedRoute><CadastroAdmin /></ProtectedRoute>} />
+                <Route path="/administrativo" element={<ProtectedRoute allowedForRH={true}><ListaAdmin /></ProtectedRoute>} />
+                <Route path="/administrativo/novo" element={<ProtectedRoute allowedForRH={true}><CadastroAdmin /></ProtectedRoute>} />
+                <Route path="/administrativo/:id" element={<ProtectedRoute allowedForRH={true}><CadastroAdmin /></ProtectedRoute>} />
                 <Route path="/cidades" element={<ProtectedRoute><GerenciarCidades /></ProtectedRoute>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>

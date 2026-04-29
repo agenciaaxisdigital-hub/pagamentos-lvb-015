@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { username, password } = await req.json();
+    const { username, password, cargo } = await req.json();
 
     if (!username || !password) {
       return new Response(JSON.stringify({ error: "Nome e senha são obrigatórios" }), {
@@ -41,6 +41,7 @@ Deno.serve(async (req) => {
       email,
       password,
       email_confirm: true,
+      user_metadata: { cargo: cargo || 'admin' }
     });
 
     if (error) {
@@ -55,6 +56,7 @@ Deno.serve(async (req) => {
       user_id: data.user.id,
       nome_usuario: cleanUsername,
       email,
+      cargo: cargo || 'admin'
     });
 
     if (insertError) {

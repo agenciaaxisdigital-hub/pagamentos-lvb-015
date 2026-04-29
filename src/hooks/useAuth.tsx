@@ -16,18 +16,9 @@ export function useAuth() {
 
       if (event === 'SIGNED_OUT') {
         console.log("[Auth] SIGNED_OUT — limpando dados locais");
-        // Limpa caches do React Query
-        try {
-          Object.keys(localStorage).forEach(k => {
-            if (k.startsWith("rq_cache") || k.startsWith("tanstack") || k === "cidade_ativa") {
-              localStorage.removeItem(k);
-            }
-          });
-        } catch {}
-      }
-
-      if (event === 'TOKEN_REFRESHED') {
-        console.log("[Auth] Token renovado com sucesso");
+        localStorage.clear();
+        sessionStorage.clear();
+        // Opcional: reset do react-query cache se houver acesso a queryClient
       }
     });
 
@@ -45,10 +36,15 @@ export function useAuth() {
       console.log(`[Auth] getSession in ${(performance.now() - t0).toFixed(0)}ms`, session ? "authenticated" : "no session");
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
-  const signOut = useCallback(() => supabase.auth.signOut(), []);
+  const signOut = useCallback(async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) console.error("[Auth] erro ao sair:", error.message);
+  }, []);
 
   return { user, loading, signOut };
 }

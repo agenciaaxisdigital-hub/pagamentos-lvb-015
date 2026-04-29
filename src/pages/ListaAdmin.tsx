@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -21,23 +21,48 @@ export default function ListaAdmin() {
   const [deleting, setDeleting] = useState<string | null>(null);
   const { cidadeAtiva } = useCidade();
 
-  const { data: funcionarios, isLoading } = useQuery({
+  const { data: suplentesNomes, isLoading: loadS } = useQuery({
+    queryKey: ["suplentes-nomes-map", cidadeAtiva],
+    queryFn: async () => {
+      let query = supabase.from("suplentes").select("id, nome");
+      if (cidadeAtiva) {
+        query = query.or(`municipio_id.eq.${cidadeAtiva},municipio_id.is.null`);
+      }
+      const { data, error } = await query;
+      if (error) return [];
+      return data;
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const nomesMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    (suplentesNomes || []).forEach((s: any) => { map[s.id] = s.nome; });
+    return map;
+  }, [suplentesNomes]);
+
+  const { data: funcionarios, isLoading: loadData } = useQuery({
     queryKey: ["administrativo", cidadeAtiva],
     queryFn: async () => {
-      let query = (supabase as any).from("administrativo").select("id, nome, cpf, whatsapp, valor_contrato, contrato_ate_mes, municipio_id").order("nome");
-      if (cidadeAtiva) query = query.eq("municipio_id", cidadeAtiva);
+      let query = (supabase as any).from("administrativo").select("id, nome, cpf, whatsapp, valor_contrato, contrato_ate_mes, municipio_id, suplente_id").order("nome");
+      if (cidadeAtiva) {
+        query = query.or(`municipio_id.eq.${cidadeAtiva},municipio_id.is.null`);
+      }
       const { data, error } = await query;
       if (error) throw error;
       return data;
     },
-    staleTime: 30_000,
+    staleTime: 1000 * 60 * 5,
   });
 
-  const filtered = funcionarios?.filter((f: any) => {
-    if (!search.trim()) return true;
+  const isLoading = loadData || loadS;
+
+  const filtered = useMemo(() => {
+    if (!funcionarios) return [];
+    if (!search.trim()) return funcionarios;
     const term = norm(search);
-    return norm(f.nome || "").includes(term) || (f.cpf || "").includes(term);
-  }) ?? [];
+    return funcionarios.filter((f: any) => norm(f.nome || "").includes(term) || (f.cpf || "").includes(term));
+  }, [funcionarios, search]);
 
   const handleDelete = async (id: string, nome: string) => {
     if (!confirm(`Excluir "${nome}"?`)) return;
@@ -107,6 +132,12 @@ export default function ListaAdmin() {
                           {f.whatsapp && (
                             <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
                               <Phone size={9} /> {f.whatsapp}
+                            </span>
+                          )}
+                          {f.suplente_id && nomesMap[f.suplente_id] && (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-tight px-2 py-0.5 rounded-full bg-gradient-to-r from-violet-500/10 to-purple-500/10 text-violet-700 dark:text-violet-400 border border-violet-500/20 shadow-sm">
+                              <div className="w-1 h-1 rounded-full bg-violet-500 animate-pulse" />
+                              Suplente: {nomesMap[f.suplente_id]}
                             </span>
                           )}
                         </div>
