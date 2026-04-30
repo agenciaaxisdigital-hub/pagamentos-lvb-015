@@ -338,64 +338,112 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Search + Filters */}
-        <div className="space-y-2">
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input placeholder="Buscar por nome, nome de urna ou setor..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10 bg-card border-border" />
-              {search && <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"><X size={14} /></button>}
+        {/* Search + Filters - Premium Design */}
+        <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-500 delay-150">
+          <div className="flex gap-3">
+            <div className="relative flex-1 group">
+              <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
+              <Input 
+                placeholder="Buscar por nome, urna ou setor..." 
+                value={search} 
+                onChange={(e) => setSearch(e.target.value)} 
+                className="pl-12 h-12 bg-card/50 border-border/50 rounded-2xl focus:ring-primary/20 transition-all premium-shadow" 
+              />
+              {search && (
+                <button 
+                  onClick={() => setSearch("")} 
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <X size={16} />
+                </button>
+              )}
             </div>
-            <Button variant={showFilters || activeFiltersCount > 0 ? "default" : "outline"} size="icon" className="h-10 w-10 shrink-0 relative" onClick={() => setShowFilters(!showFilters)}>
-              <Filter size={16} />
-              {activeFiltersCount > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold flex items-center justify-center">{activeFiltersCount}</span>}
+            <Button 
+              variant={showFilters || activeFiltersCount > 0 ? "default" : "outline"} 
+              size="icon" 
+              className="h-12 w-12 shrink-0 relative rounded-2xl transition-all active:scale-90 premium-shadow" 
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              <Filter size={18} />
+              {activeFiltersCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-primary text-white text-[10px] font-black flex items-center justify-center border-2 border-background shadow-lg animate-in zoom-in">
+                  {activeFiltersCount}
+                </span>
+              )}
             </Button>
           </div>
 
           {showFilters && (
-            <div className="bg-card rounded-2xl border border-border p-3 space-y-2.5 shadow-sm animate-fade-in">
-              <div className="flex items-center justify-between">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-primary flex items-center gap-1.5"><Filter size={10} /> Filtros</p>
-                {activeFiltersCount > 0 && <button onClick={clearFilters} className="text-[10px] text-destructive font-semibold flex items-center gap-1"><X size={10} /> Limpar</button>}
-              </div>
-              <div className="space-y-1">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Setor</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {regioes.map(r => (
-                    <button key={r} onClick={() => setFiltroRegiao(filtroRegiao === r ? "" : r)}
-                      className={`text-[10px] font-semibold px-2.5 py-1 rounded-lg transition-all ${filtroRegiao === r ? "bg-primary text-primary-foreground shadow-sm" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}>{r}</button>
-                  ))}
-                  {regioes.length === 0 && <span className="text-[10px] text-muted-foreground italic">Nenhuma região</span>}
+            <div className="glass-card rounded-[2rem] p-5 space-y-4 shadow-2xl animate-in slide-in-from-top-2 duration-300">
+              <div className="flex items-center justify-between border-b border-border/50 pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-primary/10 rounded-lg text-primary">
+                    <Filter size={14} />
+                  </div>
+                  <p className="text-xs font-black uppercase tracking-[0.2em] text-foreground">Filtros Avançados</p>
                 </div>
+                {activeFiltersCount > 0 && (
+                  <button onClick={clearFilters} className="text-[10px] text-destructive font-bold uppercase tracking-widest flex items-center gap-1.5 hover:opacity-70 transition-opacity">
+                    <X size={12} /> Limpar Tudo
+                  </button>
+                )}
               </div>
-              <div className="space-y-1">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Partido</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {partidos.map(p => (
-                    <button key={p} onClick={() => setFiltroPartido(filtroPartido === p ? "" : p)}
-                      className={`text-[10px] font-semibold px-2.5 py-1 rounded-lg transition-all ${filtroPartido === p ? "bg-primary text-primary-foreground shadow-sm" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}>{p}</button>
-                  ))}
-                  {partidos.length === 0 && <span className="text-[10px] text-muted-foreground italic">Nenhum partido</span>}
+              
+              <div className="grid grid-cols-1 gap-4">
+                <div className="space-y-2">
+                  <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] ml-1">Região / Setor</p>
+                  <div className="flex flex-wrap gap-2">
+                    {regioes.map(r => (
+                      <button key={r} onClick={() => setFiltroRegiao(filtroRegiao === r ? "" : r)}
+                        className={`text-[11px] font-bold px-4 py-2 rounded-xl transition-all border ${filtroRegiao === r ? "premium-gradient text-white border-transparent shadow-lg scale-105" : "bg-muted/50 text-muted-foreground border-border/50 hover:bg-muted"}`}>{r}</button>
+                    ))}
+                  </div>
                 </div>
-              </div>
-              <div className="space-y-1">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Situação</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {situacoes.map(s => (
-                    <button key={s} onClick={() => setFiltroSituacao(filtroSituacao === s ? "" : s)}
-                      className={`text-[10px] font-semibold px-2.5 py-1 rounded-lg transition-all ${filtroSituacao === s ? "bg-primary text-primary-foreground shadow-sm" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}>{s}</button>
-                  ))}
-                  {situacoes.length === 0 && <span className="text-[10px] text-muted-foreground italic">Nenhuma situação</span>}
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] ml-1">Partido</p>
+                    <div className="flex flex-wrap gap-2">
+                      {partidos.map(p => (
+                        <button key={p} onClick={() => setFiltroPartido(filtroPartido === p ? "" : p)}
+                          className={`text-[11px] font-bold px-4 py-2 rounded-xl transition-all border ${filtroPartido === p ? "premium-gradient text-white border-transparent shadow-lg scale-105" : "bg-muted/50 text-muted-foreground border-border/50 hover:bg-muted"}`}>{p}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] ml-1">Situação</p>
+                    <div className="flex flex-wrap gap-2">
+                      {situacoes.map(s => (
+                        <button key={s} onClick={() => setFiltroSituacao(filtroSituacao === s ? "" : s)}
+                          className={`text-[11px] font-bold px-4 py-2 rounded-xl transition-all border ${filtroSituacao === s ? "premium-gradient text-white border-transparent shadow-lg scale-105" : "bg-muted/50 text-muted-foreground border-border/50 hover:bg-muted"}`}>{s}</button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           )}
 
           {activeFiltersCount > 0 && !showFilters && (
-            <div className="flex flex-wrap gap-1.5">
-              {filtroRegiao && <span className="text-[10px] font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-lg flex items-center gap-1">{filtroRegiao} <button onClick={() => setFiltroRegiao("")}><X size={10} /></button></span>}
-              {filtroPartido && <span className="text-[10px] font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-lg flex items-center gap-1">{filtroPartido} <button onClick={() => setFiltroPartido("")}><X size={10} /></button></span>}
-              {filtroSituacao && <span className="text-[10px] font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-lg flex items-center gap-1">{filtroSituacao} <button onClick={() => setFiltroSituacao("")}><X size={10} /></button></span>}
+            <div className="flex flex-wrap gap-2 animate-in fade-in slide-in-from-left-2 duration-300">
+              {filtroRegiao && (
+                <span className="text-[10px] font-black bg-primary/10 text-primary border border-primary/20 pl-3 pr-2 py-1.5 rounded-full flex items-center gap-2 uppercase tracking-wider">
+                  {filtroRegiao} 
+                  <button onClick={() => setFiltroRegiao("")} className="hover:scale-125 transition-transform"><X size={12} /></button>
+                </span>
+              )}
+              {filtroPartido && (
+                <span className="text-[10px] font-black bg-primary/10 text-primary border border-primary/20 pl-3 pr-2 py-1.5 rounded-full flex items-center gap-2 uppercase tracking-wider">
+                  {filtroPartido} 
+                  <button onClick={() => setFiltroPartido("")} className="hover:scale-125 transition-transform"><X size={12} /></button>
+                </span>
+              )}
+              {filtroSituacao && (
+                <span className="text-[10px] font-black bg-primary/10 text-primary border border-primary/20 pl-3 pr-2 py-1.5 rounded-full flex items-center gap-2 uppercase tracking-wider">
+                  {filtroSituacao} 
+                  <button onClick={() => setFiltroSituacao("")} className="hover:scale-125 transition-transform"><X size={12} /></button>
+                </span>
+              )}
             </div>
           )}
         </div>
@@ -419,8 +467,8 @@ export default function Dashboard() {
             <div className="flex gap-1 bg-muted/50 rounded-xl p-1">
               {viewTabs.map(([key, label, Icon]) => (
                 <button key={key} onClick={() => setActiveView(key as any)}
-                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all ${activeView === key ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"}`}>
-                  <Icon size={13} /> {label}
+                  className={`flex-1 min-w-0 flex items-center justify-center gap-1 py-2 rounded-lg text-[11px] sm:text-xs font-semibold transition-all ${activeView === key ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"}`}>
+                  <Icon size={13} className="shrink-0" /> <span className="truncate">{label}</span>
                 </button>
               ))}
             </div>

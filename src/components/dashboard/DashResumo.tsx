@@ -48,41 +48,54 @@ function DashResumoInner({
 
   return (
     <div className="space-y-4">
-      {/* Hero card - Refatorado com layout de saldo e cor Rosa */}
-      <div className="bg-gradient-to-br from-pink-600 via-rose-500 to-rose-400 rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden mb-2">
-        {/* Decoração sutil de fundo */}
-        <div className="absolute -top-24 -left-24 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-white/5 rounded-full blur-3xl" />
+      {/* Hero card - Premium Glassmorphism Version */}
+      <div className="premium-gradient rounded-[2rem] sm:rounded-[2.5rem] p-4 sm:p-8 shadow-2xl relative overflow-hidden mb-4 premium-shadow animate-in fade-in zoom-in duration-700">
+        {/* Animated background elements */}
+        <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-white/20 rounded-full blur-[120px] animate-pulse" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-black/20 rounded-full blur-[100px]" />
         
         <div className="relative z-10 flex flex-col items-center text-center">
-          <div className="bg-white/20 backdrop-blur-xl px-4 py-1.5 rounded-full border border-white/20 mb-6">
-            <span className="text-[10px] font-black text-white uppercase tracking-[0.3em]">Resumo Financeiro 2026</span>
+          <div className="glass-morphism px-4 sm:px-6 py-2 rounded-full mb-6 sm:mb-8 animate-float max-w-full">
+            <span className="text-[9px] sm:text-[10px] font-black text-white uppercase tracking-[0.2em] sm:tracking-[0.4em] drop-shadow-md text-wrap-anywhere">Inteligência Financeira 2026</span>
           </div>
 
-          <p className="text-white/80 text-[11px] font-bold uppercase tracking-widest mb-2">Saldo Restante (A Pagar)</p>
-          <h2 className="text-white text-5xl sm:text-6xl font-black tracking-tighter mb-8 tabular-nums drop-shadow-lg">
-            {fmt(saldoRestante)}
-          </h2>
+          <div className="space-y-1 mb-6 sm:mb-10 w-full">
+            <p className="text-white/80 text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.12em] sm:tracking-[0.2em]">Saldo Disponível em Caixa</p>
+            <h2 className="text-white text-[clamp(2.1rem,12vw,4.5rem)] font-black tracking-tight sm:tracking-tighter numeric-compact leading-[0.95] drop-shadow-2xl text-wrap-anywhere">
+              {fmt(saldoRestante)}
+            </h2>
+          </div>
 
-          <div className="w-full grid grid-cols-2 gap-4 mb-8">
-            <div className="text-left bg-white/15 backdrop-blur-sm rounded-3xl p-5 border border-white/10">
-              <p className="text-white/70 text-[9px] font-bold uppercase tracking-widest mb-1">Total Já Pago</p>
-              <p className="text-white text-xl font-bold">{fmt(totalPagoAno)}</p>
+          <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6 sm:mb-10">
+            <div className="text-left glass-morphism rounded-[1.5rem] sm:rounded-[2rem] p-4 sm:p-6 transition-all hover:scale-[1.02] active:scale-[0.98]">
+              <p className="text-white/70 text-[9px] font-black uppercase tracking-widest mb-2 opacity-80">Efetivado (Pago)</p>
+              <div className="flex items-baseline gap-1">
+                <p className="text-white text-lg sm:text-2xl font-black tracking-tight numeric-compact text-wrap-anywhere">{fmt(totalPagoAno)}</p>
+                <ArrowDownRight size={14} className="text-white/60" />
+              </div>
             </div>
-            <div className="text-left bg-white/15 backdrop-blur-sm rounded-3xl p-5 border border-white/10">
-              <p className="text-white/70 text-[9px] font-bold uppercase tracking-widest mb-1">Orçamento Geral</p>
-              <p className="text-white text-xl font-bold">{fmt(orcamentoTotal)}</p>
+            <div className="text-left glass-morphism rounded-[1.5rem] sm:rounded-[2rem] p-4 sm:p-6 transition-all hover:scale-[1.02] active:scale-[0.98]">
+              <p className="text-white/70 text-[9px] font-black uppercase tracking-widest mb-2 opacity-80">Orçamento Total</p>
+              <div className="flex items-baseline gap-1">
+                <p className="text-white text-lg sm:text-2xl font-black tracking-tight numeric-compact text-wrap-anywhere">{fmt(orcamentoTotal)}</p>
+                <ArrowUpRight size={14} className="text-white/60" />
+              </div>
             </div>
           </div>
 
-          <div className="w-full space-y-3">
-            <div className="flex justify-between items-end mb-1">
-              <span className="text-white/70 text-[10px] font-bold uppercase tracking-tighter">Status da Operação</span>
-              <span className="text-white text-sm font-black">{orcamentoTotal > 0 ? ((totalPagoAno / orcamentoTotal) * 100).toFixed(1) : 0}% PAGO</span>
+          <div className="w-full space-y-4 glass-morphism p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem]">
+            <div className="flex justify-between items-center gap-2">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-white animate-ping" />
+                <span className="text-white/90 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider">Progresso da Execução</span>
+              </div>
+              <span className="text-white text-base sm:text-lg font-black tracking-tighter shrink-0">
+                {orcamentoTotal > 0 ? ((totalPagoAno / orcamentoTotal) * 100).toFixed(1) : 0}%
+              </span>
             </div>
-            <div className="h-4 bg-black/10 rounded-full p-1 border border-white/10">
+            <div className="h-3 bg-black/20 rounded-full overflow-hidden border border-white/10 p-[2px]">
               <div 
-                className="h-full bg-white rounded-full transition-all duration-1000 shadow-[0_0_20px_rgba(255,255,255,0.4)]" 
+                className="h-full bg-white rounded-full transition-all duration-1000 ease-out shadow-[0_0_20px_rgba(255,255,255,0.6)]" 
                 style={{ width: `${orcamentoTotal > 0 ? Math.min(100, (totalPagoAno / orcamentoTotal) * 100) : 0}%` }} 
               />
             </div>
