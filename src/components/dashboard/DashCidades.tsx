@@ -163,14 +163,14 @@ function DashCidadesInner({ dadosPorCidade }: Props) {
       <div className="bg-gradient-to-br from-primary via-primary/90 to-primary/80 rounded-2xl p-4 shadow-lg text-primary-foreground">
         <p className="text-[10px] uppercase tracking-wider opacity-80 mb-1">💰 Total Todas as Cidades</p>
         <p className="text-2xl font-bold">{fmt(totalOrc)}</p>
-        <div className="grid grid-cols-3 gap-2 mt-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-3">
           <div className="bg-primary-foreground/15 backdrop-blur rounded-xl px-2 py-1.5 text-center">
             <p className="text-[8px] uppercase opacity-70">Pago</p>
-            <p className="text-xs font-bold">{fmt(totalPago)}</p>
+            <p className="text-xs font-bold numeric-compact">{fmt(totalPago)}</p>
           </div>
           <div className="bg-primary-foreground/15 backdrop-blur rounded-xl px-2 py-1.5 text-center">
             <p className="text-[8px] uppercase opacity-70">Falta</p>
-            <p className="text-xs font-bold">{fmt(Math.max(0, totalOrc - totalPago))}</p>
+            <p className="text-xs font-bold numeric-compact">{fmt(Math.max(0, totalOrc - totalPago))}</p>
           </div>
           <div className="bg-primary-foreground/15 backdrop-blur rounded-xl px-2 py-1.5 text-center">
             <p className="text-[8px] uppercase opacity-70">% Pago</p>

@@ -159,18 +159,18 @@ export function SuplentePayCard({ s, pagsMes, pagsTodos, mes, ano, nomesMap }: S
       <div className="p-3">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
-            <p className="font-bold text-foreground text-sm truncate">{s.nome}</p>
+            <p className="font-bold text-foreground text-sm text-wrap-anywhere">{s.nome}</p>
             {s.numero_urna && (
-              <p className="text-[10px] text-muted-foreground truncate">Urna: <span className="font-semibold">{s.numero_urna}</span></p>
+              <p className="text-[10px] text-muted-foreground text-wrap-anywhere">Urna: <span className="font-semibold">{s.numero_urna}</span></p>
             )}
             <div className="flex items-center gap-2 mt-0.5 flex-wrap">
               {s.partido && <span className="text-[10px] font-semibold bg-primary/10 text-primary px-1.5 py-0.5 rounded-md">{s.partido}</span>}
-              {(s.bairro || s.regiao_atuacao) && <span className="text-[11px] text-muted-foreground">📍 {s.bairro || s.regiao_atuacao}</span>}
+              {(s.bairro || s.regiao_atuacao) && <span className="text-[11px] text-muted-foreground text-wrap-anywhere">📍 {s.bairro || s.regiao_atuacao}</span>}
             </div>
             {s.vinculado_id && (nomesMap as any)?.[s.vinculado_id] && (
               <div className="flex items-center gap-1 mt-1">
                 <Users size={10} className="text-primary/60" />
-                <span className="text-[10px] text-primary/80 font-medium">
+                <span className="text-[10px] text-primary/80 font-medium text-wrap-anywhere">
                   Vínculo: {(nomesMap as any)[s.vinculado_id]}
                 </span>
               </div>
@@ -180,12 +180,12 @@ export function SuplentePayCard({ s, pagsMes, pagsTodos, mes, ano, nomesMap }: S
             {pago ? (
               <div className="flex items-center gap-1">
                 <CheckCircle2 size={14} className="text-green-500" />
-                <span className="text-sm font-bold text-green-600 dark:text-green-400">{fmt(pagoMes || retiradaMes)}</span>
+                <span className="text-sm font-bold text-green-600 dark:text-green-400 numeric-compact">{fmt(pagoMes || retiradaMes)}</span>
               </div>
             ) : (
               <>
                 <p className="text-[10px] text-muted-foreground">Falta</p>
-                <p className="text-lg font-bold text-amber-600 dark:text-amber-400">{fmt(faltaMes)}</p>
+                <p className="text-base sm:text-lg font-bold text-amber-600 dark:text-amber-400 numeric-compact">{fmt(faltaMes)}</p>
               </>
             )}
           </div>

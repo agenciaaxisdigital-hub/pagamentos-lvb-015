@@ -703,7 +703,7 @@ export default function Pagamentos() {
         {/* Painel financeiro geral - Refatorado para foco no Saldo Devedor */}
         {/* Painel Financeiro - Ampliado para Máxima Visibilidade */}
         {!isLoading && (
-          <div className="bg-gradient-to-br from-pink-600 via-rose-500 to-rose-400 rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden mb-6">
+          <div className="bg-gradient-to-br from-pink-600 via-rose-500 to-rose-400 rounded-[2rem] sm:rounded-[2.5rem] p-4 sm:p-8 shadow-2xl relative overflow-hidden mb-6">
             <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full -mr-24 -mt-24 blur-3xl" />
             
             <div className="relative z-10">
@@ -711,18 +711,18 @@ export default function Pagamentos() {
                 <Wallet size={14} className="animate-pulse" /> Painel Financeiro Geral · {MESES[mes - 1]}/{ano}
               </div>
 
-              <div className="grid grid-cols-3 gap-3 mb-8">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6 sm:mb-8">
                 <div className="bg-white/15 backdrop-blur-xl rounded-[1.5rem] p-4 border border-white/20 text-center shadow-inner">
                   <p className="text-white/80 text-[9px] font-bold uppercase tracking-widest mb-1.5">Planejado</p>
-                  <p className="text-white font-black text-sm sm:text-lg lg:text-xl leading-none">{fmt(totalPlanejado)}</p>
+                  <p className="text-white font-black text-sm sm:text-lg lg:text-xl leading-none numeric-compact">{fmt(totalPlanejado)}</p>
                 </div>
                 <div className="bg-white/20 backdrop-blur-xl rounded-[1.5rem] p-4 border border-white/30 text-center shadow-lg">
                   <p className="text-white/80 text-[9px] font-bold uppercase tracking-widest mb-1.5">Já Pago</p>
-                  <p className="text-white font-black text-sm sm:text-lg lg:text-xl leading-none">{fmt(totalPago)}</p>
+                  <p className="text-white font-black text-sm sm:text-lg lg:text-xl leading-none numeric-compact">{fmt(totalPago)}</p>
                 </div>
                 <div className="bg-black/15 backdrop-blur-xl rounded-[1.5rem] p-4 border border-white/10 text-center shadow-inner">
                   <p className="text-white/80 text-[9px] font-bold uppercase tracking-widest mb-1.5">Falta</p>
-                  <p className="text-white font-black text-sm sm:text-lg lg:text-xl leading-none">{fmt(totalFalta)}</p>
+                  <p className="text-white font-black text-sm sm:text-lg lg:text-xl leading-none numeric-compact">{fmt(totalFalta)}</p>
                 </div>
               </div>
 
@@ -733,7 +733,7 @@ export default function Pagamentos() {
                     style={{ width: `${pctGeral}%` }} 
                   />
                 </div>
-                <div className="flex justify-between items-center text-[10px] font-black text-white uppercase tracking-wider">
+                <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 text-[10px] font-black text-white uppercase tracking-wider">
                   <span className="bg-white/20 px-2 py-0.5 rounded-md">{pctGeral.toFixed(1)}% CONCLUÍDO</span>
                   <span className="flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
@@ -844,7 +844,7 @@ export default function Pagamentos() {
         </div>
 
         {/* Tabs: Suplentes / Lideranças / Admin */}
-        <div className="grid grid-cols-3 bg-muted/50 rounded-2xl p-1.5 gap-1.5 border border-border/50 shadow-inner">
+        <div className="grid grid-cols-3 bg-muted/50 rounded-2xl p-1.5 gap-1 border border-border/50 shadow-inner">
           {abas.map(a => {
             const isActive = abaAtiva === a.id;
             const colorClass = a.id === "suplentes" ? "pink" : (a.id === "liderancas" ? "violet" : "blue");
@@ -858,9 +858,9 @@ export default function Pagamentos() {
                   isActive ? `${activeStyle} shadow-lg scale-[1.02] z-10` : "bg-card text-muted-foreground hover:bg-muted/80"
                 }`}
               >
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1 min-w-0">
                   <span className={isActive ? "text-white" : `text-${colorClass}-500`}>{a.icon}</span>
-                  <span className="text-[10px] font-black uppercase tracking-tight">{a.label}</span>
+                  <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-tight truncate">{a.label}</span>
                 </div>
                 <div className="flex flex-col items-center">
                   <span className={`text-[11px] font-black ${isActive ? "text-white/90" : "text-foreground"}`}>

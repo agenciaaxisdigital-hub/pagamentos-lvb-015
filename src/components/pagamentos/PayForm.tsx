@@ -106,10 +106,10 @@ export function PayForm({ pessoaNome, categorias, onSave, onCancel, saving, supl
 
   return (
     <div className="bg-card rounded-2xl border border-primary/30 p-4 space-y-3 shadow-sm">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <div>
           <p className="text-xs font-bold text-primary uppercase tracking-wider">Registrar Pagamento</p>
-          <p className="text-sm font-semibold text-foreground">{pessoaNome}</p>
+          <p className="text-sm font-semibold text-foreground text-wrap-anywhere">{pessoaNome}</p>
         </div>
         <button onClick={onCancel} className="text-muted-foreground hover:text-foreground p-1"><X size={16} /></button>
       </div>
@@ -237,7 +237,7 @@ export function PayForm({ pessoaNome, categorias, onSave, onCancel, saving, supl
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Valor (R$)</p>
           <div className="relative">

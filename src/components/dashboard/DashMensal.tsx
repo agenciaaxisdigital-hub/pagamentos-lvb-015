@@ -34,18 +34,18 @@ function DashMensalInner({ fluxoMensal, mesAtual }: Props) {
         <div className="flex justify-between items-center mb-2">
           <p className="text-xs font-semibold text-primary uppercase tracking-wider">📊 Total do Período</p>
         </div>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
           <div className="bg-muted/50 rounded-xl p-2.5 text-center">
             <p className="text-[8px] text-muted-foreground uppercase">Previsto</p>
-            <p className="text-sm font-bold text-foreground">{fmt(totalPrevisto)}</p>
+            <p className="text-sm font-bold text-foreground numeric-compact">{fmt(totalPrevisto)}</p>
           </div>
           <div className="bg-muted/50 rounded-xl p-2.5 text-center">
             <p className="text-[8px] text-muted-foreground uppercase">Pago</p>
-            <p className="text-sm font-bold text-status-success">{fmt(totalPago)}</p>
+            <p className="text-sm font-bold text-status-success numeric-compact">{fmt(totalPago)}</p>
           </div>
           <div className="bg-muted/50 rounded-xl p-2.5 text-center">
             <p className="text-[8px] text-muted-foreground uppercase">Falta</p>
-            <p className="text-sm font-bold text-foreground">{fmt(Math.max(0, totalPrevisto - totalPago))}</p>
+            <p className="text-sm font-bold text-foreground numeric-compact">{fmt(Math.max(0, totalPrevisto - totalPago))}</p>
           </div>
         </div>
       </div>

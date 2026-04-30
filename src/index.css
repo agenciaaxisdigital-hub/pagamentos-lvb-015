@@ -80,6 +80,8 @@
   #root {
     min-height: 100dvh;
     height: 100dvh;
+    width: 100%;
+    max-width: 100%;
     overflow: hidden;
     padding-top: env(safe-area-inset-top);
   }
@@ -89,7 +91,21 @@
     scroll-behavior: smooth;
     height: 100%;
   }
-  body { height: 100%; }
+  body {
+    height: 100%;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+  *, *::before, *::after {
+    min-width: 0;
+    box-sizing: border-box;
+  }
+  html {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
   * { -webkit-tap-highlight-color: transparent; }
   button, a, input, select, textarea, [role="button"] { touch-action: manipulation; }
   ::selection { background: hsl(340 82% 55% / 0.3); }
@@ -97,6 +113,19 @@
   @media (display-mode: standalone) {
     body { overscroll-behavior-y: none; -webkit-user-select: none; user-select: none; }
     input, textarea, [contenteditable] { -webkit-user-select: text; user-select: text; }
+  }
+}
+
+@layer utilities {
+  .text-wrap-anywhere {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .numeric-compact {
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 }
 
@@ -109,4 +138,34 @@
     border-color: rgba(236, 150, 170, 0.65);
     box-shadow: 0 8px 40px rgba(236, 72, 153, 0.12), 0 0 25px rgba(236, 150, 170, 0.2);
   }
+}
+
+.glass-morphism {
+  @apply backdrop-blur-xl bg-white/10 border border-white/20;
+}
+
+.glass-card {
+  @apply backdrop-blur-md bg-card/80 border border-border/50 shadow-xl;
+}
+
+.premium-gradient {
+  background: linear-gradient(135deg, hsl(340 82% 55%), hsl(340 82% 65%), hsl(340 82% 45%));
+}
+
+.text-gradient {
+  @apply bg-clip-text text-transparent premium-gradient;
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+.premium-shadow {
+  box-shadow: 0 20px 40px -15px rgba(236, 72, 153, 0.15);
 }

@@ -51,55 +51,61 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const showInstallBanner = (canInstall && !dismissedInstall) || showIOSInstall;
 
   return (
-    <div className="h-[100dvh] flex flex-col bg-muted select-none">
-      <div className="bg-gradient-to-r from-primary via-rose-400 to-pink-300 h-1.5 shrink-0" />
+    <div className="h-[100dvh] flex flex-col bg-background select-none overflow-hidden">
+      {/* Premium top accent */}
+      <div className="premium-gradient h-1 shrink-0 shadow-[0_0_15px_rgba(236,72,153,0.3)]" />
 
-      <header className="bg-card border-b border-border px-4 py-2.5 shrink-0 z-40">
-        <div className="max-w-2xl mx-auto flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-rose-400 flex items-center justify-center shrink-0">
-              <span className="text-xs font-bold text-primary-foreground">FS</span>
+      <header className="glass-card px-3 sm:px-4 py-3 shrink-0 z-40 mx-2 mt-2 rounded-2xl premium-shadow">
+        <div className="max-w-2xl mx-auto flex flex-wrap items-center justify-between gap-2 sm:gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-2xl premium-gradient flex items-center justify-center shrink-0 shadow-lg rotate-3">
+              <span className="text-sm font-black text-white -rotate-3 tracking-tighter">FS</span>
             </div>
             <div className="min-w-0">
-              <h1 className="text-sm font-bold text-foreground leading-tight">Painel Político</h1>
-              <p className="text-[10px] text-muted-foreground">Dra. Fernanda Sarelli</p>
+              <h1 className="text-sm font-black text-foreground leading-none tracking-tight">Painel Político</h1>
+              <p className="text-[10px] text-primary font-bold uppercase tracking-widest mt-0.5">Dra. Fernanda Sarelli</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 max-w-full">
             <SeletorCidade />
-            {"Notification" in window && notifPermission !== "granted" && (
-              <button
-                onClick={handleEnableNotifications}
-                className="text-[10px] text-muted-foreground font-semibold flex items-center gap-1 bg-muted px-2 py-1 rounded-full active:opacity-70"
-                title="Ativar notificações"
-              >
-                <BellOff size={9} />
-              </button>
-            )}
-            {"Notification" in window && notifPermission === "granted" && (
-              <span className="text-[10px] text-primary flex items-center">
-                <Bell size={9} />
-              </span>
-            )}
-            {!isOnline && (
-              <span className="text-[10px] text-destructive font-semibold flex items-center gap-1 bg-destructive/10 px-2 py-1 rounded-full border border-destructive/20">
-                <WifiOff size={9} /> Offline
-              </span>
-            )}
-            {isOnline && syncing && (
-              <span className="text-[10px] text-primary font-semibold flex items-center gap-1 bg-primary/10 px-2 py-1 rounded-full">
-                <RefreshCw size={9} className="animate-spin" /> Sincronizando
-              </span>
-            )}
-            {isOnline && !syncing && pendingCount > 0 && (
-              <button
-                onClick={syncQueue}
-                className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1 bg-amber-500/10 px-2 py-1 rounded-full border border-amber-500/20 active:opacity-70"
-              >
-                <RefreshCw size={9} /> {pendingCount} pendente{pendingCount > 1 ? "s" : ""}
-              </button>
-            )}
+            <div className="flex items-center gap-1.5 bg-muted/50 p-1 rounded-xl border border-border/50 max-w-full">
+              {"Notification" in window && notifPermission !== "granted" && (
+                <button
+                  onClick={handleEnableNotifications}
+                  className="w-7 h-7 flex items-center justify-center text-muted-foreground hover:text-primary transition-colors active:scale-90"
+                  title="Ativar notificações"
+                >
+                  <BellOff size={14} />
+                </button>
+              )}
+              {"Notification" in window && notifPermission === "granted" && (
+                <div className="w-7 h-7 flex items-center justify-center text-primary animate-pulse">
+                  <Bell size={14} />
+                </div>
+              )}
+              
+              {!isOnline ? (
+                <div className="w-7 h-7 flex items-center justify-center text-destructive animate-pulse" title="Offline">
+                  <WifiOff size={14} />
+                </div>
+              ) : syncing ? (
+                <div className="w-7 h-7 flex items-center justify-center text-primary" title="Sincronizando">
+                  <RefreshCw size={14} className="animate-spin" />
+                </div>
+              ) : pendingCount > 0 ? (
+                <button
+                  onClick={syncQueue}
+                  className="px-2 h-7 flex items-center gap-1 text-amber-600 font-bold text-[10px] bg-amber-500/10 rounded-lg active:scale-95 transition-transform"
+                >
+                  <RefreshCw size={10} /> {pendingCount}
+                </button>
+              ) : (
+                <div className="w-7 h-7 flex items-center justify-center text-status-success" title="Conectado">
+                  <div className="w-2 h-2 rounded-full bg-status-success animate-pulse" />
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -115,7 +121,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           overscrollBehavior: "none",
         }}
       >
-        <div className="max-w-2xl mx-auto px-4 py-4">
+        <div className="max-w-2xl mx-auto px-3 sm:px-4 py-4">
           {children}
         </div>
       </main>

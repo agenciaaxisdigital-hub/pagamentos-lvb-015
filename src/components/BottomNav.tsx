@@ -20,7 +20,7 @@ export function BottomNav() {
   };
 
   const navBase =
-    "flex flex-col items-center justify-center gap-0.5 text-[10px] py-2 px-1 min-w-[40px] min-h-[52px] transition-colors text-muted-foreground active:scale-90 active:opacity-70";
+    "flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5 text-[9px] sm:text-[10px] py-2 px-1 min-h-[52px] transition-colors text-muted-foreground active:scale-90 active:opacity-70";
   const navActive = "text-primary font-semibold";
 
   return (
@@ -28,7 +28,7 @@ export function BottomNav() {
       {showMais && (
         <div className="fixed inset-0 z-[60]" onClick={() => setShowMais(false)}>
           <div
-            className="absolute bottom-[64px] right-2 bg-card border border-border rounded-2xl shadow-xl p-2 w-48"
+            className="absolute bottom-[80px] right-4 glass-card rounded-3xl p-3 w-56 animate-in slide-in-from-bottom-4 duration-300 premium-shadow"
             onClick={(e) => e.stopPropagation()}
           >
                 <button
@@ -83,36 +83,44 @@ export function BottomNav() {
         </div>
       )}
 
-      <nav
-        className="fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-xl border-t border-border pb-safe"
-      >
-        <div className="flex justify-around items-stretch max-w-lg mx-auto">
+      <nav className="fixed bottom-2 sm:bottom-3 left-2 sm:left-3 right-2 sm:right-3 z-50 glass-card rounded-[2rem] premium-shadow animate-in slide-in-from-bottom-8 duration-700">
+        <div className="flex justify-around items-center max-w-lg mx-auto py-1 px-1">
           <NavLink to="/pagamentos" className={navBase} activeClassName={navActive}>
-            <Wallet size={20} strokeWidth={1.8} />
-            <span>Pagamentos</span>
+            <div className="w-9 h-9 rounded-2xl flex items-center justify-center transition-all group-active:scale-95">
+              <Wallet size={20} strokeWidth={1.8} />
+            </div>
+            <span className="truncate max-w-full">Pagamentos</span>
           </NavLink>
 
           <NavLink to="/cadastros" className={navBase} activeClassName={navActive}>
-            <List size={20} strokeWidth={1.8} />
-            <span>Suplentes</span>
+            <div className="w-9 h-9 rounded-2xl flex items-center justify-center transition-all group-active:scale-95">
+              <List size={20} strokeWidth={1.8} />
+            </div>
+            <span className="truncate max-w-full">Suplentes</span>
           </NavLink>
 
           <NavLink to="/liderancas" className={navBase} activeClassName={navActive}>
-            <Users size={20} strokeWidth={1.8} />
-            <span>Lideranças</span>
+            <div className="w-9 h-9 rounded-2xl flex items-center justify-center transition-all group-active:scale-95">
+              <Users size={20} strokeWidth={1.8} />
+            </div>
+            <span className="truncate max-w-full">Lideranças</span>
           </NavLink>
 
           <NavLink to="/administrativo" className={navBase} activeClassName={navActive}>
-            <Briefcase size={20} strokeWidth={1.8} />
-            <span>Admin</span>
+            <div className="w-9 h-9 rounded-2xl flex items-center justify-center transition-all group-active:scale-95">
+              <Briefcase size={20} strokeWidth={1.8} />
+            </div>
+            <span className="truncate max-w-full">Admin</span>
           </NavLink>
 
           <button
             onClick={() => setShowMais((v) => !v)}
             className={`${navBase} border-0 bg-transparent cursor-pointer ${showMais ? "text-primary font-semibold" : ""}`}
           >
-            <MoreHorizontal size={20} strokeWidth={1.8} />
-            <span>Mais</span>
+            <div className="w-9 h-9 rounded-2xl flex items-center justify-center transition-all group-active:scale-95">
+              <MoreHorizontal size={20} strokeWidth={1.8} />
+            </div>
+            <span className="truncate max-w-full">Mais</span>
           </button>
         </div>
       </nav>

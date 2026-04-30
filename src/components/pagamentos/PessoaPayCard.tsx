@@ -114,13 +114,13 @@ export function PessoaPayCard({ tipo, id, nome, subtitulo, valorEsperado, pagsMe
       <div className="p-3">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
-            <p className="font-bold text-foreground text-sm truncate">{nome}</p>
-            {subtitulo && <p className="text-[11px] text-muted-foreground truncate">{subtitulo}</p>}
+            <p className="font-bold text-foreground text-sm text-wrap-anywhere">{nome}</p>
+            {subtitulo && <p className="text-[11px] text-muted-foreground text-wrap-anywhere">{subtitulo}</p>}
             
             {suplente_id && nomesMap?.[suplente_id] && (
               <div className="flex items-center gap-1 mt-1">
                 <Users size={10} className="text-pink-500/60" />
-                <span className="text-[10px] text-pink-500/80 font-medium">
+                <span className="text-[10px] text-pink-500/80 font-medium text-wrap-anywhere">
                   Suplente: {nomesMap[suplente_id]}
                 </span>
               </div>
@@ -129,7 +129,7 @@ export function PessoaPayCard({ tipo, id, nome, subtitulo, valorEsperado, pagsMe
             {lideranca_vinculada_id && nomesMap?.[lideranca_vinculada_id] && (
               <div className="flex items-center gap-1 mt-0.5">
                 <Users size={10} className="text-violet-500/60" />
-                <span className="text-[10px] text-violet-500/80 font-medium">
+                <span className="text-[10px] text-violet-500/80 font-medium text-wrap-anywhere">
                   Vínculo: {nomesMap[lideranca_vinculada_id]}
                 </span>
               </div>
@@ -139,12 +139,12 @@ export function PessoaPayCard({ tipo, id, nome, subtitulo, valorEsperado, pagsMe
             {isPago ? (
               <div className="flex items-center gap-1">
                 <CheckCircle2 size={14} className="text-green-500" />
-                <span className="text-sm font-bold text-green-600 dark:text-green-400">{fmt(totalPago)}</span>
+                <span className="text-sm font-bold text-green-600 dark:text-green-400 numeric-compact">{fmt(totalPago)}</span>
               </div>
             ) : (
               <>
                 <p className="text-[10px] text-muted-foreground">Falta</p>
-                <p className="text-lg font-bold text-amber-600 dark:text-amber-400">{fmt(faltando)}</p>
+                <p className="text-base sm:text-lg font-bold text-amber-600 dark:text-amber-400 numeric-compact">{fmt(faltando)}</p>
               </>
             )}
           </div>

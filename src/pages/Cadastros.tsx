@@ -204,9 +204,9 @@ export default function Cadastros() {
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
-                          <p className="font-bold text-foreground text-sm truncate">{s.nome}</p>
+                        <p className="font-bold text-foreground text-sm text-wrap-anywhere">{s.nome}</p>
                           {s.numero_urna && (
-                            <p className="text-[10px] text-muted-foreground truncate">Urna: <span className="font-semibold">{s.numero_urna}</span></p>
+                            <p className="text-[10px] text-muted-foreground text-wrap-anywhere">Urna: <span className="font-semibold">{s.numero_urna}</span></p>
                           )}
                           <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
                             {s.partido && <span className="text-[10px] font-semibold bg-primary/10 text-primary px-1.5 py-0.5 rounded-md">{s.partido}</span>}
@@ -226,7 +226,7 @@ export default function Cadastros() {
                             )}
                           </div>
                         </div>
-                        <p className="text-sm font-bold text-primary whitespace-nowrap">{fmt(calcTotaisFinanceiros(s).totalFinal)}</p>
+                        <p className="text-sm font-bold text-primary numeric-compact">{fmt(calcTotaisFinanceiros(s).totalFinal)}</p>
                       </div>
                     </button>
 
@@ -247,7 +247,7 @@ export default function Cadastros() {
                     </div>
 
                     {/* Row 2: Lideranças / Fiscais / Plotagem / Retirada */}
-                    <div className="grid grid-cols-4 border-t border-border divide-x divide-border bg-muted/40">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 border-t border-border sm:divide-x divide-border bg-muted/40">
                       <div className="py-2 px-1 text-center">
                         <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-medium">Líder.</p>
                         <p className="text-sm font-bold text-foreground">{fmtN(liderancas)}</p>

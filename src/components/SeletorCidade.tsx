@@ -20,7 +20,7 @@ export default function SeletorCidade() {
 
   return (
     <Select value={cidadeAtiva || "todas"} onValueChange={handleChange}>
-      <SelectTrigger className="h-7 w-auto min-w-[120px] max-w-[180px] gap-1 border-primary/20 bg-primary/5 text-xs font-semibold text-primary rounded-lg px-2 [&>svg]:hidden">
+      <SelectTrigger className="h-7 w-auto min-w-[92px] sm:min-w-[120px] max-w-[150px] sm:max-w-[180px] gap-1 border-primary/20 bg-primary/5 text-[11px] sm:text-xs font-semibold text-primary rounded-lg px-2 [&>svg]:hidden">
         <MapPin size={12} className="shrink-0 text-primary" />
         <SelectValue />
       </SelectTrigger>
