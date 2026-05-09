@@ -7,11 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { Save, Calculator, PenLine, Trash2, Loader2 } from "lucide-react";
+import { Save, Calculator, PenLine, Trash2, Loader2, MapPin } from "lucide-react";
 import SignaturePad from "@/components/SignaturePad";
 import BuscaTSE from "@/components/BuscaTSE";
 import { useCidade } from "@/contexts/CidadeContext";
-import { MapPin } from "lucide-react";
 
 interface FormData {
   municipio_id: string;
@@ -113,6 +112,20 @@ export default function Cadastro({ initial, onSaved }: Props) {
   const [saving, setSaving] = useState(false);
   const [showSignature, setShowSignature] = useState(false);
   const initialSnapshot = initial ? JSON.stringify(initial) : "";
+
+  // Lista de suplentes para o dropdown de vínculo
+  const { data: suplentesList } = useQuery({
+    queryKey: ["suplentes-select", cidadeAtiva],
+    queryFn: async () => {
+      let query = supabase.from("suplentes").select("id, nome").order("nome");
+      if (cidadeAtiva) {
+        query = query.eq("municipio_id", cidadeAtiva);
+      }
+      const { data, error } = await query;
+      if (error) return [];
+      return data;
+    },
+  });
 
   useEffect(() => {
     const built = buildFormState(initial);
