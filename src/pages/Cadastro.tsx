@@ -190,7 +190,7 @@ export default function Cadastro({ initial, onSaved }: Props) {
       }
     }
 
-    const { nome_urna, municipio_id, ...rest } = form;
+    const { nome_urna, municipio_id, vinculado_id, ...rest } = form;
     const payload: any = { ...rest, numero_urna: nome_urna || rest.numero_urna || "", total_campanha: totalCampanha };
     payload.municipio_id = municipio_id || cidadeAtiva || null;
 
