@@ -25,8 +25,10 @@ export async function execOnlineOrEnqueue(
       }
       if (offlineFallback.onSuccess) offlineFallback.onSuccess();
       return response;
-    } catch (error) {
-      console.warn('⚠️ Operação online falhou. Enfileirando localmente...', error);
+    } catch (error: any) {
+      console.warn('⚠️ Operação online falhou:', error);
+      if (offlineFallback.onError) offlineFallback.onError(error);
+      return { error };
     }
   }
 

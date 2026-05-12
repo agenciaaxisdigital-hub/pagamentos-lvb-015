@@ -48,13 +48,14 @@ export function HistoricoItem({ p, onDelete }: HistoricoItemProps) {
     if (!v) return;
     setSaving(true);
     const { error } = await supabase.from("pagamentos").update({ valor: v, observacao: obs || null }).eq("id", p.id);
-    setSaving(true);
-    if (!error) {
-      toast({ title: "Atualizado!" });
-      qc.invalidateQueries({ queryKey: ["pagamentos"] });
-      setEditing(false);
-    }
     setSaving(false);
+    if (error) {
+      toast({ title: "Erro ao atualizar", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Atualizado!" });
+    qc.invalidateQueries({ queryKey: ["pagamentos"] });
+    setEditing(false);
   };
 
   if (editing) return (

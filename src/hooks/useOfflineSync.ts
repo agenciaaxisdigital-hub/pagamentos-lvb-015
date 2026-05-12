@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { db } from '@/lib/dexieDb';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -11,6 +12,7 @@ import { toast } from 'sonner';
  * - Retry com backoff exponencial (max 5 tentativas)
  */
 export function useOfflineSync() {
+  const qc = useQueryClient();
   const [syncing, setSyncing] = useState(false);
   const syncingRef = useRef(false);
   const [pendingCount, setPendingCount] = useState(0);
@@ -107,6 +109,7 @@ export function useOfflineSync() {
       console.log(`[Sync] Concluído: ${successCount} ok, ${errorCount} erros (${elapsed}ms)`);
 
       if (successCount > 0) {
+        qc.invalidateQueries({ queryKey: ["pagamentos"] });
         toast.success(`${successCount} registros sincronizados!`, { id: 'sync-progress' });
       } else if (errorCount > 0) {
         toast.error(`Falha em ${errorCount} registros (verifique logs)`, { id: 'sync-progress' });
@@ -118,7 +121,7 @@ export function useOfflineSync() {
       setSyncing(false);
       updateCount();
     }
-  }, [updateCount]);
+  }, [updateCount, qc]);
 
   useEffect(() => {
     updateCount();
