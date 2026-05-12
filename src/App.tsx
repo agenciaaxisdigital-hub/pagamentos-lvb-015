@@ -9,7 +9,6 @@ import { Layout } from "@/components/Layout";
 import { CidadeProvider, useCidade } from "@/contexts/CidadeContext";
 import SplashScreen from "@/components/SplashScreen";
 import VersionMonitor from "./components/VersionMonitor";
-import { useOfflineSync } from "./hooks/useOfflineSync";
 
 // ─── Lazy-loaded pages ─────────────────────────────────────────────────
 import Login from "./pages/Login";
@@ -47,37 +46,6 @@ const queryClient = new QueryClient({
   },
 });
 
-// ─── Limpeza caches de React Query antigos ──────────────────────────────
-try {
-  Object.keys(window.localStorage).forEach(k => {
-    if (k.startsWith("rq_cache") || k.startsWith("REACT_QUERY") || k.startsWith("tanstack")) {
-      window.localStorage.removeItem(k);
-    }
-  });
-  const legacyQueue = window.localStorage.getItem("offline_queue");
-  if (legacyQueue) {
-    try {
-      const items = JSON.parse(legacyQueue);
-      if (Array.isArray(items) && items.length > 0) {
-        import("@/lib/dexieDb").then(({ db, generateOperationId }) => {
-          items.forEach((item: any) => {
-            db.syncQueue.add({
-              action: (item.operation || "INSERT").toUpperCase(),
-              table: item.table,
-              payload: item.data || item.payload || {},
-              matchKey: item.filter ? { [item.filter.column]: item.filter.value } : undefined,
-              timestamp: new Date(item.timestamp || Date.now()).toISOString(),
-              status: "PENDING",
-              retryCount: 0,
-              operationId: generateOperationId(),
-            }).catch(() => {});
-          });
-        });
-      }
-      window.localStorage.removeItem("offline_queue");
-    } catch { window.localStorage.removeItem("offline_queue"); }
-  }
-} catch {}
 
 // ─── Fallback de carregamento ───────────────────────────────────────────
 function PageFallback() {
@@ -116,11 +84,6 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-function GlobalOfflineSync() {
-  useOfflineSync();
-  return null;
-}
-
 function Index() {
   return <Navigate to="/pagamentos" replace />;
 }
@@ -138,7 +101,6 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <CidadeProvider>
-          <GlobalOfflineSync />
           <VersionMonitor />
           <Toaster />
           <Sonner />

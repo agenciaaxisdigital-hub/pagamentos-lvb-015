@@ -59,46 +59,25 @@ export function PessoaPayCard({ tipo, id, nome, subtitulo, valorEsperado, pagsMe
 
   const handleSave = async (valor: number, obs: string) => {
     if (saving) return;
-
     const jaExiste = pagsMes.some(p => p.categoria === catPadrao);
     if (jaExiste) {
       toast({ title: `⚠️ Já existe pagamento de ${catPadrao === "retirada" ? "Retirada" : "Salário"} neste mês`, description: "Apague o existente antes de inserir outro.", variant: "destructive" });
       return;
     }
     setSaving(true);
-    
-    const payload: Record<string, any> = { 
-      tipo_pessoa: tipo, 
-      mes, 
-      ano, 
-      categoria: catPadrao, 
-      valor, 
-      observacao: obs || null 
-    };
-    
+    const payload: Record<string, string | number | null> = { tipo_pessoa: tipo, mes, ano, categoria: catPadrao, valor, observacao: obs || null };
     if (tipo === "lideranca") payload.lideranca_id = id;
     else payload.admin_id = id;
-    
-    const { execOnlineOrEnqueue } = await import("@/lib/offlineFallback");
-
-    await execOnlineOrEnqueue(
-      () => supabase.from("pagamentos").insert(payload),
-      {
-        action: 'INSERT',
-        table: 'pagamentos',
-        payload,
-        onSuccess: () => {
-          toast({ title: `✅ ${fmt(valor)} registrado!` });
-          qc.invalidateQueries({ queryKey: ["pagamentos"] });
-          setPaying(false);
-          setSaving(false);
-        },
-        onError: (err) => {
-          toast({ title: "Erro", description: err.message, variant: "destructive" });
-          setSaving(false);
-        }
-      }
-    );
+    const { error } = await supabase.from("pagamentos").insert(payload);
+    if (error) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+      setSaving(false);
+      return;
+    }
+    toast({ title: `✅ ${fmt(valor)} registrado!` });
+    qc.invalidateQueries({ queryKey: ["pagamentos"] });
+    setPaying(false);
+    setSaving(false);
   };
 
   const handleDelete = async (pagId: string) => {

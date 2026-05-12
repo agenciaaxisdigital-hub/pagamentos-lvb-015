@@ -3,9 +3,9 @@ import { useLocation } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { usePWAInstall } from "@/hooks/usePWAInstall";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
-import { useOfflineSync } from "@/hooks/useOfflineSync";
 import { requestNotificationPermission } from "@/hooks/usePaymentNotifications";
 import { Download, WifiOff, X, RefreshCw, Bell, BellOff } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import SeletorCidade from "@/components/SeletorCidade";
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -13,7 +13,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const mainRef = useRef<HTMLDivElement>(null);
   const { canInstall, install } = usePWAInstall();
   const isOnline = useOnlineStatus();
-  const { syncing, pendingCount, syncQueue } = useOfflineSync();
+  const qc = useQueryClient();
+  const [refreshing, setRefreshing] = useState(false);
   const [dismissedInstall, setDismissedInstall] = useState(() =>
     sessionStorage.getItem("pwa_install_dismissed") === "1"
   );
@@ -48,6 +49,19 @@ export function Layout({ children }: { children: React.ReactNode }) {
     setDismissedIOS(true);
   };
 
+  const handleForceRefresh = async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    if ("serviceWorker" in navigator) {
+      try {
+        const reg = await navigator.serviceWorker.getRegistration();
+        if (reg) await reg.update();
+      } catch { /* SW update não crítico */ }
+    }
+    await qc.invalidateQueries();
+    setRefreshing(false);
+  };
+
   const showInstallBanner = (canInstall && !dismissedInstall) || showIOSInstall;
 
   return (
@@ -70,6 +84,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 max-w-full">
             <SeletorCidade />
             <div className="flex items-center gap-1.5 bg-muted/50 p-1 rounded-xl border border-border/50 max-w-full">
+              <button
+                onClick={handleForceRefresh}
+                disabled={refreshing}
+                className="w-7 h-7 flex items-center justify-center text-muted-foreground hover:text-primary transition-colors active:scale-90 disabled:opacity-50"
+                title="Atualizar dados"
+              >
+                <RefreshCw size={14} className={refreshing ? "animate-spin text-primary" : ""} />
+              </button>
               {"Notification" in window && notifPermission !== "granted" && (
                 <button
                   onClick={handleEnableNotifications}
@@ -89,17 +111,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 <div className="w-7 h-7 flex items-center justify-center text-destructive animate-pulse" title="Offline">
                   <WifiOff size={14} />
                 </div>
-              ) : syncing ? (
-                <div className="w-7 h-7 flex items-center justify-center text-primary" title="Sincronizando">
-                  <RefreshCw size={14} className="animate-spin" />
-                </div>
-              ) : pendingCount > 0 ? (
-                <button
-                  onClick={syncQueue}
-                  className="px-2 h-7 flex items-center gap-1 text-amber-600 font-bold text-[10px] bg-amber-500/10 rounded-lg active:scale-95 transition-transform"
-                >
-                  <RefreshCw size={10} /> {pendingCount}
-                </button>
               ) : (
                 <div className="w-7 h-7 flex items-center justify-center text-status-success" title="Conectado">
                   <div className="w-2 h-2 rounded-full bg-status-success animate-pulse" />

@@ -113,37 +113,17 @@ export function SuplentePayCard({ s, pagsMes, pagsTodos, mes, ano, nomesMap }: S
       }
     }
     setSaving(true);
-
-    const payload = {
-      tipo_pessoa: "suplente",
-      suplente_id: s.id,
-      mes,
-      ano,
-      categoria: cat,
-      valor,
-      observacao: obs || null,
-    };
-
-    const { execOnlineOrEnqueue } = await import("@/lib/offlineFallback");
-    
-    await execOnlineOrEnqueue(
-      () => supabase.from("pagamentos").insert(payload),
-      {
-        action: 'INSERT',
-        table: 'pagamentos',
-        payload,
-        onSuccess: () => {
-          toast({ title: `✅ ${fmt(valor)} registrado para ${s.nome}` });
-          qc.invalidateQueries({ queryKey: ["pagamentos"] });
-          setPaying(false);
-          setSaving(false);
-        },
-        onError: (err) => {
-          toast({ title: "Erro", description: err.message, variant: "destructive" });
-          setSaving(false);
-        }
-      }
-    );
+    const payload = { tipo_pessoa: "suplente", suplente_id: s.id, mes, ano, categoria: cat, valor, observacao: obs || null };
+    const { error } = await supabase.from("pagamentos").insert(payload);
+    if (error) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+      setSaving(false);
+      return;
+    }
+    toast({ title: `✅ ${fmt(valor)} registrado para ${s.nome}` });
+    qc.invalidateQueries({ queryKey: ["pagamentos"] });
+    setPaying(false);
+    setSaving(false);
   };
 
   const handleDelete = async (pagId: string) => {
@@ -167,11 +147,11 @@ export function SuplentePayCard({ s, pagsMes, pagsTodos, mes, ano, nomesMap }: S
               {s.partido && <span className="text-[10px] font-semibold bg-primary/10 text-primary px-1.5 py-0.5 rounded-md">{s.partido}</span>}
               {(s.bairro || s.regiao_atuacao) && <span className="text-[11px] text-muted-foreground text-wrap-anywhere">📍 {s.bairro || s.regiao_atuacao}</span>}
             </div>
-            {s.vinculado_id && (nomesMap as any)?.[s.vinculado_id] && (
+            {s.vinculado_id && nomesMap?.[s.vinculado_id] && (
               <div className="flex items-center gap-1 mt-1">
                 <Users size={10} className="text-primary/60" />
                 <span className="text-[10px] text-primary/80 font-medium text-wrap-anywhere">
-                  Vínculo: {(nomesMap as any)[s.vinculado_id]}
+                  Vínculo: {nomesMap[s.vinculado_id]}
                 </span>
               </div>
             )}
