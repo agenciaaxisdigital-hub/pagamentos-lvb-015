@@ -1,5 +1,15 @@
 import { useEffect, useCallback, useRef } from "react";
-import { toast } from "sonner";
+
+// Limpa cache de dados da API (não o shell do app) para garantir dados frescos na próxima abertura
+async function clearApiCache() {
+  if (!("caches" in window) || !navigator.onLine) return;
+  try {
+    await caches.delete("supabase-api");
+    await caches.delete("supabase-functions");
+  } catch {
+    // silencioso
+  }
+}
 
 export default function VersionMonitor() {
   const reloadScheduled = useRef(false);
@@ -8,17 +18,38 @@ export default function VersionMonitor() {
     if (!("serviceWorker" in navigator)) return;
     try {
       const regs = await navigator.serviceWorker.getRegistrations();
-      for (const reg of regs) {
-        await reg.update();
-      }
-      console.log("[SW] Update check completed", new Date().toISOString());
-    } catch (err) {
-      console.error("[SW] Update check error", err);
+      for (const reg of regs) await reg.update();
+    } catch {
+      // silencioso
     }
   }, []);
 
   useEffect(() => {
-    const handleOnline = () => checkForUpdates();
+    // Limpa cache de API ao fechar/minimizar o app (pagehide é mais confiável no PWA)
+    // Na próxima abertura os dados virão frescos da rede
+    window.addEventListener("pagehide", clearApiCache);
+
+    // Recarrega silenciosamente quando o usuário não está digitando
+    const reloadWhenIdle = () => {
+      if (reloadScheduled.current) return;
+      reloadScheduled.current = true;
+
+      const tryReload = () => {
+        const active = document.activeElement;
+        const isTyping =
+          active instanceof HTMLInputElement ||
+          active instanceof HTMLTextAreaElement ||
+          (active instanceof HTMLElement && active.contentEditable === "true");
+
+        if (isTyping) {
+          setTimeout(tryReload, 2000);
+        } else {
+          window.location.reload();
+        }
+      };
+
+      setTimeout(tryReload, 1000);
+    };
 
     const handleVisibility = () => {
       if (document.visibilityState === "visible" && navigator.onLine) {
@@ -26,40 +57,18 @@ export default function VersionMonitor() {
       }
     };
 
-    // Reload seguro: só uma vez, com confirmação visual, sem loop
-    const handleControllerChange = () => {
-      if (reloadScheduled.current) return;
-      reloadScheduled.current = true;
-      console.log("[SW] controllerchange detected — nova versão ativa", new Date().toISOString());
-
-      toast("Nova versão disponível!", {
-        description: "O app será atualizado em 3 segundos...",
-        duration: 3000,
-        action: {
-          label: "Atualizar agora",
-          onClick: () => window.location.reload(),
-        },
-      });
-
-      // Fallback: reload automático após 3s se o usuário não interagir
-      setTimeout(() => {
-        if (reloadScheduled.current) {
-          window.location.reload();
-        }
-      }, 3000);
-    };
-
-    window.addEventListener("online", handleOnline);
+    window.addEventListener("online", checkForUpdates);
     document.addEventListener("visibilitychange", handleVisibility);
-    navigator.serviceWorker?.addEventListener("controllerchange", handleControllerChange);
+    navigator.serviceWorker?.addEventListener("controllerchange", reloadWhenIdle);
 
-    // Check a cada 30 min
-    const interval = setInterval(checkForUpdates, 30 * 60 * 1000);
+    // Verifica a cada 5 min
+    const interval = setInterval(checkForUpdates, 5 * 60 * 1000);
 
     return () => {
-      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("pagehide", clearApiCache);
+      window.removeEventListener("online", checkForUpdates);
       document.removeEventListener("visibilitychange", handleVisibility);
-      navigator.serviceWorker?.removeEventListener("controllerchange", handleControllerChange);
+      navigator.serviceWorker?.removeEventListener("controllerchange", reloadWhenIdle);
       clearInterval(interval);
     };
   }, [checkForUpdates]);
