@@ -25,7 +25,7 @@ type GetMesInicioArgs = {
 export function getMesInicioPorCadastro(
   createdAt: string | null | undefined,
   mesInicioGlobal: number,
-  mesCutoffExcecao = 3,
+  mesCutoffExcecao = 4,
   anoReferencia = 2026,
 ): number {
   if (!createdAt) return mesInicioGlobal;
@@ -36,10 +36,17 @@ export function getMesInicioPorCadastro(
   const mesCadastro = dt.getMonth() + 1;
   const anoCadastro = dt.getFullYear();
 
-  if (anoCadastro < anoReferencia || (anoCadastro === anoReferencia && mesCadastro <= mesCutoffExcecao)) {
+  // Antes do ano de referência ou antes do mês de corte → início global (março)
+  if (anoCadastro < anoReferencia || (anoCadastro === anoReferencia && mesCadastro < mesCutoffExcecao)) {
     return mesInicioGlobal;
   }
 
+  // Mês exato do corte (abril) → começa no próprio mês
+  if (anoCadastro === anoReferencia && mesCadastro === mesCutoffExcecao) {
+    return Math.max(mesInicioGlobal, mesCutoffExcecao);
+  }
+
+  // Após o corte (maio em diante) → começa no mês seguinte
   return Math.max(mesInicioGlobal, mesCadastro + 1);
 }
 
