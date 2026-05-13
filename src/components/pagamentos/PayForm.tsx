@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,6 +58,7 @@ export function PayForm({ pessoaNome, categorias, onSave, onCancel, saving, supl
   const [editQtd, setEditQtd] = useState("");
   const [editVal, setEditVal] = useState("");
   const [savingFields, setSavingFields] = useState(false);
+  const savingFieldsRef = useRef(false);
 
   const handleCatChange = (newCat: string) => {
     setCat(newCat);
@@ -80,24 +81,29 @@ export function PayForm({ pessoaNome, categorias, onSave, onCancel, saving, supl
   };
 
   const saveEdit = async (catKey: string) => {
-    if (!suplenteId) return;
+    if (!suplenteId || savingFieldsRef.current) return;
     const fields = CAT_FIELDS[catKey];
     if (!fields) return;
+    savingFieldsRef.current = true;
     setSavingFields(true);
-    const update: Record<string, number> = {};
-    if ("qtdField" in fields) {
-      update[fields.qtdField] = parseInt(editQtd) || 0;
-      update[fields.valField] = parseFloat(editVal.replace(",", ".")) || 0;
-    } else {
-      update[fields.valField] = parseFloat(editVal.replace(",", ".")) || 0;
-      update[fields.mesesField] = parseInt(editQtd) || 0;
+    try {
+      const update: Record<string, number> = {};
+      if ("qtdField" in fields) {
+        update[fields.qtdField] = parseInt(editQtd) || 0;
+        update[fields.valField] = parseFloat(editVal.replace(",", ".")) || 0;
+      } else {
+        update[fields.valField] = parseFloat(editVal.replace(",", ".")) || 0;
+        update[fields.mesesField] = parseInt(editQtd) || 0;
+      }
+      const { error } = await supabase.from("suplentes").update(update).eq("id", suplenteId);
+      if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
+      toast({ title: "Valores atualizados!" });
+      setEditCat(null);
+      onFieldsUpdated?.();
+    } finally {
+      savingFieldsRef.current = false;
+      setSavingFields(false);
     }
-    const { error } = await supabase.from("suplentes").update(update).eq("id", suplenteId);
-    setSavingFields(false);
-    if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
-    toast({ title: "Valores atualizados!" });
-    setEditCat(null);
-    onFieldsUpdated?.();
   };
 
   const totalPlanejado = categorias.reduce((a, c) => a + c.planejado, 0);
@@ -136,7 +142,7 @@ export function PayForm({ pessoaNome, categorias, onSave, onCancel, saving, supl
                         <p className="text-[9px] text-muted-foreground mb-0.5">
                           {c.key === "retirada" ? "Valor Mensal (R$)" : "Quantidade"}
                         </p>
-                        <Input type="number" inputMode="decimal" value={c.key === "retirada" ? editVal : editQtd}
+                        <Input type="number" inputMode="decimal" min="0" value={c.key === "retirada" ? editVal : editQtd}
                           onChange={e => c.key === "retirada" ? setEditVal(e.target.value) : setEditQtd(e.target.value)}
                           className="h-8 text-xs bg-card font-bold" />
                       </div>
@@ -144,7 +150,7 @@ export function PayForm({ pessoaNome, categorias, onSave, onCancel, saving, supl
                         <p className="text-[9px] text-muted-foreground mb-0.5">
                           {c.key === "retirada" ? "Meses" : "Valor Unitário (R$)"}
                         </p>
-                        <Input type="number" inputMode="decimal" value={c.key === "retirada" ? editQtd : editVal}
+                        <Input type="number" inputMode="decimal" min="0" value={c.key === "retirada" ? editQtd : editVal}
                           onChange={e => c.key === "retirada" ? setEditQtd(e.target.value) : setEditVal(e.target.value)}
                           className="h-8 text-xs bg-card font-bold" />
                       </div>
@@ -243,7 +249,7 @@ export function PayForm({ pessoaNome, categorias, onSave, onCancel, saving, supl
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs font-medium">R$</span>
             <Input type="number" inputMode="decimal" value={valor} onChange={e => setValor(e.target.value)}
-              className="pl-8 h-11 text-base font-bold bg-card border-primary/40" placeholder="0,00" autoFocus />
+              className="pl-8 h-11 text-base font-bold bg-card border-primary/40" placeholder="0,00" />
           </div>
         </div>
         <div>

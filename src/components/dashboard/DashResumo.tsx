@@ -218,7 +218,7 @@ function DashResumoInner({
           </div>
           <MiniBar pago={totalLidFluxo} total={orcamentoTotal} cor="bg-primary" />
           <div className="space-y-0.5 pl-2 border-l-2 border-primary/20">
-            {lidList.map(l => (
+            {(lidList ?? []).filter(Boolean).map(l => (
               <div key={l.id} className="flex justify-between text-[11px]">
                 <span className="text-muted-foreground truncate mr-2">{l.nome} {l.regiao ? `(${l.regiao})` : ""}</span>
                 <span className="font-medium text-foreground shrink-0">{fmt(l.retirada_mensal_valor || 0)}</span>

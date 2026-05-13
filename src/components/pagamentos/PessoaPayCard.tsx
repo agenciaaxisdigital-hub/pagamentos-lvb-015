@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
@@ -50,6 +50,7 @@ export function PessoaPayCard({ tipo, id, nome, subtitulo, valorEsperado, pagsMe
   const qc = useQueryClient();
   const [paying, setPaying] = useState(false);
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   const [showHist, setShowHist] = useState(false);
   const totalPagoRaw = pagsMes.reduce((a, p) => a + p.valor, 0);
   const totalPago = Math.min(totalPagoRaw, valorEsperado);
@@ -58,26 +59,30 @@ export function PessoaPayCard({ tipo, id, nome, subtitulo, valorEsperado, pagsMe
   const catPadrao = tipo === "lideranca" ? "retirada" : "salario";
 
   const handleSave = async (valor: number, obs: string) => {
-    if (saving) return;
-    const jaExiste = pagsMes.some(p => p.categoria === catPadrao);
-    if (jaExiste) {
-      toast({ title: `⚠️ Já existe pagamento de ${catPadrao === "retirada" ? "Retirada" : "Salário"} neste mês`, description: "Apague o existente antes de inserir outro.", variant: "destructive" });
-      return;
-    }
+    if (savingRef.current) return;
+    savingRef.current = true;
     setSaving(true);
-    const payload: Record<string, string | number | null> = { tipo_pessoa: tipo, mes, ano, categoria: catPadrao, valor, observacao: obs || null };
-    if (tipo === "lideranca") payload.lideranca_id = id;
-    else payload.admin_id = id;
-    const { error } = await supabase.from("pagamentos").insert(payload);
-    if (error) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    try {
+      const jaExiste = pagsMes.some(p => p.categoria === catPadrao);
+      if (jaExiste) {
+        toast({ title: `⚠️ Já existe pagamento de ${catPadrao === "retirada" ? "Retirada" : "Salário"} neste mês`, description: "Apague o existente antes de inserir outro.", variant: "destructive" });
+        return;
+      }
+      const payload: Record<string, string | number | null> = { tipo_pessoa: tipo, mes, ano, categoria: catPadrao, valor, observacao: obs || null };
+      if (tipo === "lideranca") payload.lideranca_id = id;
+      else payload.admin_id = id;
+      const { error } = await supabase.from("pagamentos").insert(payload);
+      if (error) {
+        toast({ title: "Erro", description: error.message, variant: "destructive" });
+        return;
+      }
+      toast({ title: `✅ ${fmt(valor)} registrado!` });
+      qc.invalidateQueries({ queryKey: ["pagamentos"] });
+      setPaying(false);
+    } finally {
+      savingRef.current = false;
       setSaving(false);
-      return;
     }
-    toast({ title: `✅ ${fmt(valor)} registrado!` });
-    qc.invalidateQueries({ queryKey: ["pagamentos"] });
-    setPaying(false);
-    setSaving(false);
   };
 
   const handleDelete = async (pagId: string) => {
