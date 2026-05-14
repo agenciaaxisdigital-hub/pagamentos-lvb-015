@@ -1,12 +1,13 @@
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useDeleteWithUndo } from "@/hooks/useDeleteWithUndo";
+import { usePersistedState } from "@/hooks/usePersistedState";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { toast } from "@/hooks/use-toast";
-import { Search, Plus, MapPin, Phone, Trash2, ChevronRight, Loader2, FileDown, Filter } from "lucide-react";
+import { Search, Plus, MapPin, Phone, Trash2, ChevronRight, FileDown, Filter } from "lucide-react";
 import { exportLiderancasExcel, exportLiderancaPDF } from "@/lib/exports";
 import { PageTransition } from "@/components/PageTransition";
 import { CardSkeletonList } from "@/components/CardSkeleton";
@@ -19,9 +20,9 @@ export default function ListaLiderancas() {
   const navigate = useNavigate();
 
   const qc = useQueryClient();
-  const [search, setSearch] = useState("");
-  const [deleting, setDeleting] = useState<string | null>(null);
-  const [filtroVinculo, setFiltroVinculo] = useState<string>("todos");
+  const { deleteWithUndo } = useDeleteWithUndo();
+  const [search, setSearch] = usePersistedState("busca-liderancas", "");
+  const [filtroVinculo, setFiltroVinculo] = usePersistedState<string>("filtro-vinculo-liderancas", "todos");
   const { cidadeAtiva } = useCidade();
 
   const { data: suplentesNomes, isLoading: loadS } = useQuery({
@@ -95,21 +96,14 @@ export default function ListaLiderancas() {
     );
   }, [liderancas, filtroVinculo, search]);
 
-  const handleDelete = async (id: string, nome: string) => {
-    if (!confirm(`Excluir "${nome}"?`)) return;
-    setDeleting(id);
-    const { error } = await (supabase as any).from("liderancas").delete().eq("id", id);
-    setDeleting(null);
-    if (error) {
-      toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Excluído com sucesso" });
-      qc.setQueriesData<any[]>({ queryKey: ["liderancas"] }, (old) =>
-        Array.isArray(old) ? old.filter(l => l.id !== id) : (old ?? [])
-      );
-      qc.invalidateQueries({ queryKey: ["liderancas"] });
-      qc.invalidateQueries({ queryKey: ["liderancas-nomes-map"] });
-    }
+  const handleDelete = (id: string, nome: string) => {
+    deleteWithUndo({
+      queryKey: ["liderancas"],
+      itemId: id,
+      deleteFn: async () => (supabase as any).from("liderancas").delete().eq("id", id),
+      label: nome,
+      onAfterDelete: () => qc.invalidateQueries({ queryKey: ["liderancas-nomes-map"] }),
+    });
   };
 
   const totalMensal = useMemo(() => filtered.reduce((a: number, l: any) => a + (l.retirada_mensal_valor || 0), 0), [filtered]);
@@ -253,11 +247,9 @@ export default function ListaLiderancas() {
                     </button>
                     <button
                       onClick={() => handleDelete(l.id, l.nome)}
-                      disabled={deleting === l.id}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs text-destructive active:bg-destructive/10 disabled:opacity-50"
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs text-destructive active:bg-destructive/10"
                     >
-                      {deleting === l.id ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
-                      Excluir
+                      <Trash2 size={13} /> Excluir
                     </button>
                   </div>
                 </div>

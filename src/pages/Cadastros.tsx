@@ -1,9 +1,11 @@
-import { useEffect, useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
+import { useDeleteWithUndo } from "@/hooks/useDeleteWithUndo";
+import { usePersistedState } from "@/hooks/usePersistedState";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, ChevronRight, MapPin, ArrowLeft, Trash2, FileDown, Loader2, Plus } from "lucide-react";
+import { Search, ChevronRight, MapPin, ArrowLeft, Trash2, FileDown, Plus } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import Cadastro from "./Cadastro";
@@ -17,12 +19,11 @@ import { useCidade } from "@/contexts/CidadeContext";
 
 export default function Cadastros() {
   const navigate = useNavigate();
-  const [search, setSearch] = useState("");
+  const { deleteWithUndo } = useDeleteWithUndo();
+  const [search, setSearch] = usePersistedState("busca-suplentes", "");
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState<string | null>(null);
   const { cidadeAtiva } = useCidade();
 
-  const qc = useQueryClient();
   const { data: suplentes, refetch, isLoading } = useQuery({
     queryKey: ["suplentes", cidadeAtiva],
     queryFn: async () => {
@@ -60,20 +61,13 @@ export default function Cadastros() {
 
   const editing = useMemo(() => editingId ? suplentes?.find((s: any) => s.id === editingId) : null, [suplentes, editingId]);
 
-  const handleDelete = async (id: string, nome: string) => {
-    if (!confirm(`Excluir "${nome}"?`)) return;
-    setDeleting(id);
-    const { error } = await supabase.from("suplentes").delete().eq("id", id);
-    setDeleting(null);
-    if (error) {
-      toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Excluído com sucesso" });
-      qc.setQueriesData<any[]>({ queryKey: ["suplentes"] }, (old) =>
-        Array.isArray(old) ? old.filter(s => s.id !== id) : (old ?? [])
-      );
-      qc.invalidateQueries({ queryKey: ["suplentes"] });
-    }
+  const handleDelete = (id: string, nome: string) => {
+    deleteWithUndo({
+      queryKey: ["suplentes"],
+      itemId: id,
+      deleteFn: async () => supabase.from("suplentes").delete().eq("id", id),
+      label: nome,
+    });
   };
 
   // Funções de validação agora são manuais (removidas do useEffect)
@@ -193,7 +187,6 @@ export default function Cadastros() {
                 const fiscaisVal = fiscais * (s.fiscais_valor_unit || 0);
                 const plotagemVal = plotagem * (s.plotagem_valor_unit || 0);
                 const fmtN = (v: number) => (v || 0).toLocaleString("pt-BR");
-                const isDeleting = deleting === s.id;
 
                 return (
                   <div
@@ -284,9 +277,8 @@ export default function Cadastros() {
                         size="icon"
                         className="h-8 w-8 text-destructive hover:text-destructive active:scale-95"
                         onClick={() => handleDelete(s.id, s.nome)}
-                        disabled={isDeleting}
                       >
-                        {isDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                        <Trash2 size={14} />
                       </Button>
                       <ChevronRight size={16} className="text-muted-foreground cursor-pointer" onClick={() => setEditingId(s.id)} />
                     </div>

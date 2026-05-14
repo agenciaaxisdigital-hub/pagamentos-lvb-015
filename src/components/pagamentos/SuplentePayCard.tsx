@@ -5,6 +5,7 @@ import { toast } from "@/hooks/use-toast";
 import { CheckCircle2, ChevronDown, ChevronUp, DollarSign, Receipt, Trash2, Users } from "lucide-react";
 import { calcTotaisFinanceiros } from "@/lib/finance";
 import { PayForm } from "./PayForm";
+import { useDeleteWithUndo } from "@/hooks/useDeleteWithUndo";
 
 const fmt = (v: number) => (v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho",
@@ -75,6 +76,7 @@ interface SuplentePayCardProps {
 
 export function SuplentePayCard({ s, pagsMes, pagsTodos, mes, ano, nomesMap }: SuplentePayCardProps) {
   const qc = useQueryClient();
+  const { deleteWithUndo } = useDeleteWithUndo();
   const [paying, setPaying] = useState(false);
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
@@ -135,15 +137,13 @@ export function SuplentePayCard({ s, pagsMes, pagsTodos, mes, ano, nomesMap }: S
     }
   };
 
-  const handleDelete = async (pagId: string) => {
-    if (!confirm("Excluir pagamento?")) return;
-    const { error } = await supabase.from("pagamentos").delete().eq("id", pagId);
-    if (error) { toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" }); return; }
-    toast({ title: "✅ Pagamento excluído" });
-    qc.setQueriesData<Pagamento[]>({ queryKey: ["pagamentos"] }, (old) =>
-      Array.isArray(old) ? old.filter(p => p.id !== pagId) : (old ?? [])
-    );
-    qc.invalidateQueries({ queryKey: ["pagamentos"] });
+  const handleDelete = (pagId: string) => {
+    deleteWithUndo({
+      queryKey: ["pagamentos"],
+      itemId: pagId,
+      deleteFn: () => supabase.from("pagamentos").delete().eq("id", pagId),
+      label: "Pagamento",
+    });
   };
 
   return (

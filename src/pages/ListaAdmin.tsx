@@ -1,11 +1,12 @@
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
+import { useDeleteWithUndo } from "@/hooks/useDeleteWithUndo";
+import { usePersistedState } from "@/hooks/usePersistedState";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { toast } from "@/hooks/use-toast";
-import { Search, Plus, Phone, Trash2, ChevronRight, Loader2, FileDown, FileText } from "lucide-react";
+import { Search, Plus, Phone, Trash2, ChevronRight, FileDown, FileText } from "lucide-react";
 import { exportAdminPDF } from "@/lib/exports";
 import { PageTransition } from "@/components/PageTransition";
 import { CardSkeletonList } from "@/components/CardSkeleton";
@@ -16,9 +17,8 @@ const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").t
 
 export default function ListaAdmin() {
   const navigate = useNavigate();
-  const qc = useQueryClient();
-  const [search, setSearch] = useState("");
-  const [deleting, setDeleting] = useState<string | null>(null);
+  const { deleteWithUndo } = useDeleteWithUndo();
+  const [search, setSearch] = usePersistedState("busca-admin", "");
   const { cidadeAtiva } = useCidade();
 
   const { data: suplentesNomes, isLoading: loadS } = useQuery({
@@ -64,20 +64,13 @@ export default function ListaAdmin() {
     return funcionarios.filter((f: any) => norm(f.nome || "").includes(term) || (f.cpf || "").includes(term));
   }, [funcionarios, search]);
 
-  const handleDelete = async (id: string, nome: string) => {
-    if (!confirm(`Excluir "${nome}"?`)) return;
-    setDeleting(id);
-    const { error } = await (supabase as any).from("administrativo").delete().eq("id", id);
-    setDeleting(null);
-    if (error) {
-      toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Excluído com sucesso" });
-      qc.setQueriesData<any[]>({ queryKey: ["administrativo"] }, (old) =>
-        Array.isArray(old) ? old.filter(f => f.id !== id) : (old ?? [])
-      );
-      qc.invalidateQueries({ queryKey: ["administrativo"] });
-    }
+  const handleDelete = (id: string, nome: string) => {
+    deleteWithUndo({
+      queryKey: ["administrativo"],
+      itemId: id,
+      deleteFn: async () => (supabase as any).from("administrativo").delete().eq("id", id),
+      label: nome,
+    });
   };
 
   return (
@@ -170,11 +163,9 @@ export default function ListaAdmin() {
                     )}
                     <button
                       onClick={() => handleDelete(f.id, f.nome)}
-                      disabled={deleting === f.id}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs text-destructive active:bg-destructive/10 disabled:opacity-50"
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs text-destructive active:bg-destructive/10"
                     >
-                      {deleting === f.id ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
-                      Excluir
+                      <Trash2 size={13} /> Excluir
                     </button>
                   </div>
                 </div>

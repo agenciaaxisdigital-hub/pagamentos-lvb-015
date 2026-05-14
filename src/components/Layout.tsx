@@ -1,12 +1,14 @@
 import { BottomNav } from "./BottomNav";
 import { useLocation } from "react-router-dom";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { usePWAInstall } from "@/hooks/usePWAInstall";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { requestNotificationPermission } from "@/hooks/usePaymentNotifications";
 import { Download, WifiOff, X, RefreshCw, Bell, BellOff } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import SeletorCidade from "@/components/SeletorCidade";
+
+const PULL_THRESHOLD = 65;
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const { pathname } = useLocation();
@@ -30,6 +32,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
     "Notification" in window ? Notification.permission : "denied"
   );
 
+  const touchStartY = useRef(0);
+  const [pullDelta, setPullDelta] = useState(0);
+
   const handleEnableNotifications = async () => {
     const granted = await requestNotificationPermission();
     setNotifPermission(granted ? "granted" : "denied");
@@ -49,7 +54,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     setDismissedIOS(true);
   };
 
-  const handleForceRefresh = async () => {
+  const handleForceRefresh = useCallback(async () => {
     if (refreshing) return;
     setRefreshing(true);
     if ("serviceWorker" in navigator) {
@@ -60,13 +65,39 @@ export function Layout({ children }: { children: React.ReactNode }) {
     }
     await qc.invalidateQueries();
     setRefreshing(false);
-  };
+  }, [refreshing, qc]);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if ((mainRef.current?.scrollTop ?? 1) === 0) {
+      touchStartY.current = e.touches[0].clientY;
+    }
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!touchStartY.current || refreshing) return;
+    const delta = e.touches[0].clientY - touchStartY.current;
+    if (delta > 0 && (mainRef.current?.scrollTop ?? 1) === 0) {
+      setPullDelta(Math.min(delta, PULL_THRESHOLD + 30));
+    } else {
+      touchStartY.current = 0;
+      setPullDelta(0);
+    }
+  }, [refreshing]);
+
+  const handleTouchEnd = useCallback(async () => {
+    if (pullDelta >= PULL_THRESHOLD) {
+      await handleForceRefresh();
+    }
+    setPullDelta(0);
+    touchStartY.current = 0;
+  }, [pullDelta, handleForceRefresh]);
 
   const showInstallBanner = (canInstall && !dismissedInstall) || showIOSInstall;
+  const pullProgress = Math.min(pullDelta / PULL_THRESHOLD, 1);
+  const pullHeight = Math.round(pullProgress * 36);
 
   return (
     <div className="h-[100dvh] flex flex-col bg-background select-none overflow-hidden">
-      {/* Premium top accent */}
       <div className="premium-gradient h-1 shrink-0 shadow-[0_0_15px_rgba(236,72,153,0.3)]" />
 
       <header className="glass-card px-3 sm:px-4 py-3 shrink-0 z-40 mx-2 mt-2 rounded-2xl premium-shadow">
@@ -106,7 +137,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   <Bell size={14} />
                 </div>
               )}
-              
+
               {!isOnline ? (
                 <div className="w-7 h-7 flex items-center justify-center text-destructive animate-pulse" title="Offline">
                   <WifiOff size={14} />
@@ -131,7 +162,19 @@ export function Layout({ children }: { children: React.ReactNode }) {
             : "calc(80px + env(safe-area-inset-bottom, 0px))",
           overscrollBehavior: "none",
         }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       >
+        {pullHeight > 0 && (
+          <div className="flex items-center justify-center overflow-hidden" style={{ height: pullHeight }}>
+            <RefreshCw
+              size={15}
+              className={`text-primary ${pullProgress >= 1 || refreshing ? "animate-spin" : ""}`}
+              style={{ transform: `rotate(${Math.round(pullProgress * 360)}deg)`, opacity: pullProgress }}
+            />
+          </div>
+        )}
         <div className="max-w-2xl mx-auto px-3 sm:px-4 py-4">
           {children}
         </div>

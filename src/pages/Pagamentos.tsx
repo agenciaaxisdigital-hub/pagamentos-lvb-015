@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { usePersistedState } from "@/hooks/usePersistedState";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -90,11 +91,11 @@ const MES_INICIO_ADMIN = 3;      // Administrativo: pagamentos a partir de Març
 // ─── PÁGINA PRINCIPAL ─────────────────────────────────────────────────────────
 export default function Pagamentos() {
   const now = new Date();
-  const [mes, setMes] = useState(Math.max(now.getMonth() + 1, 3));
-  const [ano, setAno] = useState(now.getFullYear());
+  const [mes, setMes] = usePersistedState("pag-mes", Math.max(now.getMonth() + 1, 3));
+  const [ano, setAno] = usePersistedState("pag-ano", now.getFullYear());
   const { isAdmin, isRH, cidadeAtiva } = useCidade();
-  const [abaAtiva, setAbaAtiva] = useState<"suplentes" | "liderancas" | "admin">("suplentes");
-  const [busca, setBusca] = useState("");
+  const [abaAtiva, setAbaAtiva] = usePersistedState<"suplentes" | "liderancas" | "admin">("pag-aba", "suplentes");
+  const [busca, setBusca] = usePersistedState("pag-busca", "");
   const [showPagos, setShowPagos] = useState(true);
   const [showAlertaAtraso, setShowAlertaAtraso] = useState(false);
   const [alertaDismissed, setAlertaDismissed] = useState(false);
