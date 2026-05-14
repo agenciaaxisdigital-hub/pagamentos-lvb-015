@@ -54,7 +54,7 @@ export function HistoricoItem({ p, onDelete }: HistoricoItemProps) {
       return;
     }
     toast({ title: "Atualizado!" });
-    qc.invalidateQueries();
+    await qc.refetchQueries({ queryKey: ["pagamentos"] });
     setEditing(false);
   };
 

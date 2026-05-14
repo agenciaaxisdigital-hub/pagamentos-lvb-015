@@ -77,7 +77,7 @@ export function PessoaPayCard({ tipo, id, nome, subtitulo, valorEsperado, pagsMe
         return;
       }
       toast({ title: `✅ ${fmt(valor)} registrado!` });
-      qc.invalidateQueries();
+      await qc.refetchQueries({ queryKey: ["pagamentos"] });
       setPaying(false);
     } finally {
       savingRef.current = false;
@@ -90,7 +90,7 @@ export function PessoaPayCard({ tipo, id, nome, subtitulo, valorEsperado, pagsMe
     const { error } = await supabase.from("pagamentos").delete().eq("id", pagId);
     if (error) { toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" }); return; }
     toast({ title: "✅ Pagamento excluído" });
-    qc.invalidateQueries();
+    await qc.refetchQueries({ queryKey: ["pagamentos"] });
   };
 
   return (

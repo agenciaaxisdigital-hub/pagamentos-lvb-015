@@ -123,7 +123,7 @@ export function SuplentePayCard({ s, pagsMes, pagsTodos, mes, ano, nomesMap }: S
         return;
       }
       toast({ title: `✅ ${fmt(valor)} registrado para ${s.nome}` });
-      qc.invalidateQueries();
+      await qc.refetchQueries({ queryKey: ["pagamentos"] });
       setPaying(false);
     } finally {
       savingRef.current = false;
@@ -136,7 +136,7 @@ export function SuplentePayCard({ s, pagsMes, pagsTodos, mes, ano, nomesMap }: S
     const { error } = await supabase.from("pagamentos").delete().eq("id", pagId);
     if (error) { toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" }); return; }
     toast({ title: "✅ Pagamento excluído" });
-    qc.invalidateQueries();
+    await qc.refetchQueries({ queryKey: ["pagamentos"] });
   };
 
   return (
