@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -76,6 +76,7 @@ export default function CadastroAdmin() {
   const [form, setForm] = useState<FormData>(defaultForm);
   const [initialized, setInitialized] = useState(false);
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
 
   if (existing && !initialized) {
     setForm({
@@ -101,22 +102,28 @@ export default function CadastroAdmin() {
       toast({ title: "Nome obrigatório", variant: "destructive" });
       return;
     }
+    if (savingRef.current) return;
+    savingRef.current = true;
     setSaving(true);
-    const payload: any = { ...form, updated_at: new Date().toISOString() };
-    payload.municipio_id = selectedMunicipio || cidadeAtiva || null;
-    let error;
-    if (id) {
-      ({ error } = await (supabase as any).from("administrativo").update(payload).eq("id", id));
-    } else {
-      ({ error } = await (supabase as any).from("administrativo").insert(payload));
-    }
-    setSaving(false);
-    if (error) {
-      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: id ? "Atualizado!" : "Funcionário cadastrado!" });
-      qc.invalidateQueries({ queryKey: ["administrativo"] });
-      navigate("/administrativo");
+    try {
+      const payload: any = { ...form, updated_at: new Date().toISOString() };
+      payload.municipio_id = selectedMunicipio || cidadeAtiva || null;
+      let error;
+      if (id) {
+        ({ error } = await (supabase as any).from("administrativo").update(payload).eq("id", id));
+      } else {
+        ({ error } = await (supabase as any).from("administrativo").insert(payload));
+      }
+      if (error) {
+        toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+      } else {
+        toast({ title: id ? "Atualizado!" : "Funcionário cadastrado!" });
+        qc.invalidateQueries();
+        navigate("/administrativo");
+      }
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
     }
   };
 
@@ -316,7 +323,7 @@ export default function CadastroAdmin() {
         <Button
           onClick={handleSave}
           disabled={saving}
-          className="w-full bg-gradient-to-r from-pink-500 to-rose-400 hover:opacity-90 text-white font-semibold h-12 text-base shadow-lg active:scale-[0.98] transition-transform"
+          className="w-full bg-gradient-to-r from-pink-500 to-rose-400 hover:opacity-90 text-white font-semibold h-12 text-base shadow-lg active:scale-[0.98] transition-transform touch-manipulation"
         >
           {saving ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
           {saving ? "Salvando..." : id ? "Atualizar Funcionário" : "Salvar Funcionário"}

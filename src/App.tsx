@@ -24,12 +24,10 @@ import CadastroAdmin from "./pages/CadastroAdmin";
 import GerenciarCidades from "./pages/GerenciarCidades";
 import NotFound from "./pages/NotFound";
 
-// ─── QueryClient com suporte offline ───────────────────────────────────
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      networkMode: "offlineFirst",
-      staleTime: 60_000,
+      staleTime: 0,
       gcTime: 1000 * 60 * 10,
       refetchOnMount: "always",
       refetchOnReconnect: true,
@@ -39,9 +37,6 @@ const queryClient = new QueryClient({
         if (msg.includes("JWT") || msg.includes("401")) return false;
         return failureCount < 2;
       },
-    },
-    mutations: {
-      networkMode: "offlineFirst",
     },
   },
 });

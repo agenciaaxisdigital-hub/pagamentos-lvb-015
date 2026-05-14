@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -77,6 +77,7 @@ export default function CadastroLideranca() {
   const [showSignature, setShowSignature] = useState(false);
   const [initialized, setInitialized] = useState(false);
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   const [openVinculo, setOpenVinculo] = useState(false);
 
   // Queries para os filtros de vínculo
@@ -141,7 +142,8 @@ export default function CadastroLideranca() {
       toast({ title: "Campo obrigatório", description: "O nome da liderança é necessário.", variant: "destructive" });
       return;
     }
-
+    if (savingRef.current) return;
+    savingRef.current = true;
     setSaving(true);
     try {
       const payload: any = {
@@ -169,12 +171,13 @@ export default function CadastroLideranca() {
         toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
       } else {
         toast({ title: id ? "Dados atualizados!" : "Cadastrado com sucesso!" });
-        qc.invalidateQueries({ queryKey: ["liderancas"] });
+        qc.invalidateQueries();
         navigate("/liderancas");
       }
     } catch (err: any) {
       toast({ title: "Erro inesperado", description: err.message, variant: "destructive" });
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };
@@ -474,7 +477,7 @@ export default function CadastroLideranca() {
         <Button
           onClick={handleSave}
           disabled={saving}
-          className="w-full bg-gradient-to-r from-pink-500 to-rose-400 hover:opacity-95 text-white font-bold h-14 text-lg shadow-xl active:scale-[0.98] transition-all rounded-2xl"
+          className="w-full bg-gradient-to-r from-pink-500 to-rose-400 hover:opacity-95 text-white font-bold h-14 text-lg shadow-xl active:scale-[0.98] transition-all rounded-2xl touch-manipulation"
         >
           {saving ? <Loader2 size={24} className="animate-spin" /> : <Save size={24} className="mr-2" />}
           {saving ? "Salvando..." : id ? "Atualizar Dados" : "Finalizar Cadastro"}
