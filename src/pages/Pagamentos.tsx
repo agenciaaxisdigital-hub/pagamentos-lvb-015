@@ -110,7 +110,7 @@ export default function Pagamentos() {
       if (error) return [];
       return data;
     },
-    staleTime: 1000 * 60 * 5,
+    staleTime: 0,
   });
 
   const { data: todasLiderancasNomes } = useQuery({
@@ -124,7 +124,7 @@ export default function Pagamentos() {
       if (error) return [];
       return data;
     },
-    staleTime: 1000 * 60 * 5,
+    staleTime: 0,
   });
 
   const nomesMap = useMemo(() => {
@@ -147,7 +147,7 @@ export default function Pagamentos() {
       if (error) throw error;
       return data as unknown as Suplente[];
     },
-    staleTime: 1000 * 60 * 5,
+    staleTime: 0,
   });
 
   const { data: liderancas, isLoading: loadL } = useQuery({
@@ -161,7 +161,7 @@ export default function Pagamentos() {
       if (error) throw error;
       return data as unknown as Lideranca[];
     },
-    staleTime: 1000 * 60 * 5,
+    staleTime: 0,
   });
 
   const { data: administrativo, isLoading: loadA } = useQuery({
@@ -175,7 +175,7 @@ export default function Pagamentos() {
       if (error) throw error;
       return data as unknown as AdminPessoa[];
     },
-    staleTime: 1000 * 60 * 5,
+    staleTime: 0,
   });
 
   const { data: pagamentos, isLoading: loadP } = useQuery({
@@ -193,7 +193,7 @@ export default function Pagamentos() {
       if (error) throw error;
       return data as unknown as Pagamento[];
     },
-    staleTime: 1000 * 60 * 5,
+    staleTime: 0,
   });
 
   const isLoading = loadS || loadL || loadA || loadP;

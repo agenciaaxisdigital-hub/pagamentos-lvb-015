@@ -55,14 +55,15 @@ export default defineConfig(({ mode }) => ({
         navigateFallbackDenylist: [/^\/~oauth/],
         runtimeCaching: [
           {
-            // API Supabase REST — StaleWhileRevalidate com cache curto (1 dia)
+            // API Supabase REST — NetworkFirst para garantir dados em tempo real
             urlPattern: /^https:\/\/.*\.supabase\.co\/rest\/v1\/.*/i,
-            handler: "StaleWhileRevalidate",
+            handler: "NetworkFirst",
             options: {
               cacheName: "supabase-api",
+              networkTimeoutSeconds: 5,
               expiration: {
                 maxEntries: 200,
-                maxAgeSeconds: 60 * 60 * 24, // 1 dia (era 7)
+                maxAgeSeconds: 60 * 60, // 1 hora
               },
               cacheableResponse: { statuses: [0, 200] },
             },
@@ -73,12 +74,12 @@ export default defineConfig(({ mode }) => ({
             handler: "NetworkOnly",
           },
           {
-            // Edge Functions — NetworkFirst com timeout generoso
+            // Edge Functions — NetworkFirst com timeout curto
             urlPattern: /^https:\/\/.*\.supabase\.co\/functions\/.*/i,
             handler: "NetworkFirst",
             options: {
               cacheName: "supabase-functions",
-              networkTimeoutSeconds: 15,
+              networkTimeoutSeconds: 5,
               expiration: {
                 maxEntries: 50,
                 maxAgeSeconds: 60 * 60, // 1 hora

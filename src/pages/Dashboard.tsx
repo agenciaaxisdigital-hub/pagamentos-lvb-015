@@ -23,7 +23,7 @@ import {
   COLORS_CAT, COLORS_CITY,
 } from "@/components/dashboard/types";
 
-const STALE_TIME = 60_000;
+const STALE_TIME = 0; // Dados em tempo real
 
 export default function Dashboard() {
   const [search, setSearch] = useState("");
