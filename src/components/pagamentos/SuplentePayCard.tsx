@@ -123,8 +123,12 @@ export function SuplentePayCard({ s, pagsMes, pagsTodos, mes, ano, nomesMap }: S
         return;
       }
       toast({ title: `✅ ${fmt(valor)} registrado para ${s.nome}` });
-      await qc.refetchQueries({ queryKey: ["pagamentos"] });
+      const novoId = `opt-${Date.now()}`;
+      qc.setQueriesData<Pagamento[]>({ queryKey: ["pagamentos"] }, (old) =>
+        Array.isArray(old) ? [...old, { id: novoId, suplente_id: s.id, lideranca_id: null, admin_id: null, tipo_pessoa: "suplente", mes, ano, categoria: cat, valor, observacao: obs || null, created_at: new Date().toISOString() }] : (old ?? [])
+      );
       setPaying(false);
+      qc.invalidateQueries({ queryKey: ["pagamentos"] });
     } finally {
       savingRef.current = false;
       setSaving(false);
@@ -136,7 +140,10 @@ export function SuplentePayCard({ s, pagsMes, pagsTodos, mes, ano, nomesMap }: S
     const { error } = await supabase.from("pagamentos").delete().eq("id", pagId);
     if (error) { toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" }); return; }
     toast({ title: "✅ Pagamento excluído" });
-    await qc.refetchQueries({ queryKey: ["pagamentos"] });
+    qc.setQueriesData<Pagamento[]>({ queryKey: ["pagamentos"] }, (old) =>
+      Array.isArray(old) ? old.filter(p => p.id !== pagId) : (old ?? [])
+    );
+    qc.invalidateQueries({ queryKey: ["pagamentos"] });
   };
 
   return (

@@ -77,8 +77,13 @@ export function PessoaPayCard({ tipo, id, nome, subtitulo, valorEsperado, pagsMe
         return;
       }
       toast({ title: `✅ ${fmt(valor)} registrado!` });
-      await qc.refetchQueries({ queryKey: ["pagamentos"] });
+      const novoId = `opt-${Date.now()}`;
+      const pessoaKey = tipo === "lideranca" ? { lideranca_id: id, admin_id: null, suplente_id: null } : { admin_id: id, lideranca_id: null, suplente_id: null };
+      qc.setQueriesData<Pagamento[]>({ queryKey: ["pagamentos"] }, (old) =>
+        Array.isArray(old) ? [...old, { id: novoId, ...pessoaKey, tipo_pessoa: tipo, mes, ano, categoria: catPadrao, valor, observacao: obs || null, created_at: new Date().toISOString() }] : (old ?? [])
+      );
       setPaying(false);
+      qc.invalidateQueries({ queryKey: ["pagamentos"] });
     } finally {
       savingRef.current = false;
       setSaving(false);
@@ -90,7 +95,10 @@ export function PessoaPayCard({ tipo, id, nome, subtitulo, valorEsperado, pagsMe
     const { error } = await supabase.from("pagamentos").delete().eq("id", pagId);
     if (error) { toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" }); return; }
     toast({ title: "✅ Pagamento excluído" });
-    await qc.refetchQueries({ queryKey: ["pagamentos"] });
+    qc.setQueriesData<Pagamento[]>({ queryKey: ["pagamentos"] }, (old) =>
+      Array.isArray(old) ? old.filter(p => p.id !== pagId) : (old ?? [])
+    );
+    qc.invalidateQueries({ queryKey: ["pagamentos"] });
   };
 
   return (

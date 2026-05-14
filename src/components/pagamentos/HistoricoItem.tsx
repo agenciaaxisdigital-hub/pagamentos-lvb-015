@@ -54,8 +54,11 @@ export function HistoricoItem({ p, onDelete }: HistoricoItemProps) {
       return;
     }
     toast({ title: "Atualizado!" });
-    await qc.refetchQueries({ queryKey: ["pagamentos"] });
+    qc.setQueriesData<Pagamento[]>({ queryKey: ["pagamentos"] }, (old) =>
+      Array.isArray(old) ? old.map(item => item.id === p.id ? { ...item, valor: v, observacao: obs || null } : item) : (old ?? [])
+    );
     setEditing(false);
+    qc.invalidateQueries({ queryKey: ["pagamentos"] });
   };
 
   if (editing) return (
