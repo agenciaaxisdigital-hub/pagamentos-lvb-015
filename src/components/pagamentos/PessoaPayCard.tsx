@@ -77,7 +77,7 @@ export function PessoaPayCard({ tipo, id, nome, subtitulo, valorEsperado, pagsMe
         return;
       }
       toast({ title: `✅ ${fmt(valor)} registrado!` });
-      qc.invalidateQueries({ queryKey: ["pagamentos"] });
+      qc.invalidateQueries();
       setPaying(false);
     } finally {
       savingRef.current = false;
@@ -90,7 +90,7 @@ export function PessoaPayCard({ tipo, id, nome, subtitulo, valorEsperado, pagsMe
     const { error } = await supabase.from("pagamentos").delete().eq("id", pagId);
     if (error) { toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" }); return; }
     toast({ title: "✅ Pagamento excluído" });
-    qc.invalidateQueries({ queryKey: ["pagamentos"] });
+    qc.invalidateQueries();
   };
 
   return (
@@ -147,7 +147,7 @@ export function PessoaPayCard({ tipo, id, nome, subtitulo, valorEsperado, pagsMe
 
       <div className="flex border-t border-border/30 divide-x divide-border/30">
         <button onClick={() => { setPaying(!paying); setShowHist(false); }}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-[11px] font-bold ${!isPago ? "text-white bg-gradient-to-r from-pink-500 to-rose-400" : "text-primary hover:bg-primary/5"}`}>
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-[11px] font-bold touch-manipulation ${!isPago ? "text-white bg-gradient-to-r from-pink-500 to-rose-400" : "text-primary hover:bg-primary/5"}`}>
           <DollarSign size={12} /> {isPago ? "+ Extra" : "Pagar"}
         </button>
         {pagsMes.length > 0 && (

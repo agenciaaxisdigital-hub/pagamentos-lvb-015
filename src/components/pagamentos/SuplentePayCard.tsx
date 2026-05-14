@@ -123,7 +123,7 @@ export function SuplentePayCard({ s, pagsMes, pagsTodos, mes, ano, nomesMap }: S
         return;
       }
       toast({ title: `✅ ${fmt(valor)} registrado para ${s.nome}` });
-      qc.invalidateQueries({ queryKey: ["pagamentos"] });
+      qc.invalidateQueries();
       setPaying(false);
     } finally {
       savingRef.current = false;
@@ -136,7 +136,7 @@ export function SuplentePayCard({ s, pagsMes, pagsTodos, mes, ano, nomesMap }: S
     const { error } = await supabase.from("pagamentos").delete().eq("id", pagId);
     if (error) { toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" }); return; }
     toast({ title: "✅ Pagamento excluído" });
-    qc.invalidateQueries({ queryKey: ["pagamentos"] });
+    qc.invalidateQueries();
   };
 
   return (
@@ -188,7 +188,7 @@ export function SuplentePayCard({ s, pagsMes, pagsTodos, mes, ano, nomesMap }: S
 
       <div className="flex border-t border-border/30 divide-x divide-border/30">
         <button onClick={() => { setPaying(!paying); setShowFicha(false); }}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-[11px] font-bold ${!pago ? "text-white bg-gradient-to-r from-pink-500 to-rose-400" : "text-primary hover:bg-primary/5"}`}>
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-[11px] font-bold touch-manipulation ${!pago ? "text-white bg-gradient-to-r from-pink-500 to-rose-400" : "text-primary hover:bg-primary/5"}`}>
           <DollarSign size={12} /> {pago ? "+ Pagamento" : "Pagar"}
         </button>
         <button onClick={() => { setShowFicha(!showFicha); setPaying(false); }}

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -37,6 +37,8 @@ interface FormData {
   fiscais_valor_unit: number;
   assinatura: string;
   vinculado_id: string;
+  tem_candidato_deputado: string;
+  nome_candidato_deputado: string;
 }
 
 // Meses restantes até outubro (MES_FIM = 10), mínimo 1
@@ -67,6 +69,8 @@ const defaultForm: FormData = {
   fiscais_valor_unit: 110,
   assinatura: "",
   vinculado_id: "",
+  tem_candidato_deputado: "",
+  nome_candidato_deputado: "",
 };
 
 interface Props {
@@ -102,6 +106,8 @@ function buildFormState(initial?: Props["initial"]): FormData {
     fiscais_valor_unit: Number(initial?.fiscais_valor_unit ?? defaultForm.fiscais_valor_unit),
     assinatura: initial?.assinatura ?? defaultForm.assinatura,
     vinculado_id: (initial as any)?.vinculado_id ?? defaultForm.vinculado_id,
+    tem_candidato_deputado: (initial as any)?.tem_candidato_deputado ?? defaultForm.tem_candidato_deputado,
+    nome_candidato_deputado: (initial as any)?.nome_candidato_deputado ?? defaultForm.nome_candidato_deputado,
   };
 }
 
@@ -110,6 +116,7 @@ export default function Cadastro({ initial, onSaved }: Props) {
   const { cidadeAtiva, municipios } = useCidade();
   const [form, setForm] = useState<FormData>(() => buildFormState(initial));
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   const [showSignature, setShowSignature] = useState(false);
   const initialSnapshot = initial ? JSON.stringify(initial) : "";
 
@@ -165,50 +172,53 @@ export default function Cadastro({ initial, onSaved }: Props) {
       toast({ title: "Expectativa obrigatória", description: "Informe a expectativa de votos maior que zero.", variant: "destructive" });
       return;
     }
+    if (savingRef.current) return;
+    savingRef.current = true;
     setSaving(true);
-
-    {
-      let query = supabase
-        .from("suplentes")
-        .select("id, nome")
-        .ilike("nome", form.nome.trim());
-      if (initial?.id) query = query.neq("id", initial.id);
-      const { data: duplicado, error: dupError } = await query.maybeSingle();
-      if (dupError) {
-        toast({ title: "Erro ao verificar duplicata", description: dupError.message, variant: "destructive" });
-        setSaving(false);
-        return;
+    try {
+      {
+        let query = supabase
+          .from("suplentes")
+          .select("id, nome")
+          .ilike("nome", form.nome.trim());
+        if (initial?.id) query = query.neq("id", initial.id);
+        const { data: duplicado, error: dupError } = await query.maybeSingle();
+        if (dupError) {
+          toast({ title: "Erro ao verificar duplicata", description: dupError.message, variant: "destructive" });
+          return;
+        }
+        if (duplicado) {
+          toast({
+            title: "Nome já cadastrado",
+            description: `"${duplicado.nome}" já existe na base de dados.`,
+            variant: "destructive",
+          });
+          return;
+        }
       }
-      if (duplicado) {
-        toast({
-          title: "Nome já cadastrado",
-          description: `"${duplicado.nome}" já existe na base de dados.`,
-          variant: "destructive",
-        });
-        setSaving(false);
-        return;
+
+      const { nome_urna, municipio_id, vinculado_id, ...rest } = form;
+      const payload: any = { ...rest, numero_urna: nome_urna || rest.numero_urna || "", total_campanha: totalCampanha };
+      payload.municipio_id = municipio_id || cidadeAtiva || null;
+
+      let error;
+      if (initial?.id) {
+        ({ error } = await supabase.from("suplentes").update(payload).eq("id", initial.id));
+      } else {
+        ({ error } = await supabase.from("suplentes").insert(payload));
       }
-    }
 
-    const { nome_urna, municipio_id, vinculado_id, ...rest } = form;
-    const payload: any = { ...rest, numero_urna: nome_urna || rest.numero_urna || "", total_campanha: totalCampanha };
-    payload.municipio_id = municipio_id || cidadeAtiva || null;
-
-    let error;
-    if (initial?.id) {
-      ({ error } = await supabase.from("suplentes").update(payload).eq("id", initial.id));
-    } else {
-      ({ error } = await supabase.from("suplentes").insert(payload));
-    }
-    setSaving(false);
-
-    if (error) {
-      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
-    } else {
-      await qc.invalidateQueries({ queryKey: ["suplentes"] });
-      toast({ title: initial?.id ? "Atualizado!" : "Cadastrado com sucesso!" });
-      if (!initial?.id) setForm(defaultForm);
-      onSaved?.();
+      if (error) {
+        toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+      } else {
+        await qc.invalidateQueries();
+        toast({ title: initial?.id ? "Atualizado!" : "Cadastrado com sucesso!" });
+        if (!initial?.id) setForm(defaultForm);
+        onSaved?.();
+      }
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
     }
   };
 
@@ -382,6 +392,27 @@ export default function Cadastro({ initial, onSaved }: Props) {
         </div>
       </section>
 
+      {/* Apoio Político */}
+      <section className="bg-card rounded-2xl border border-border p-4 space-y-3 shadow-sm">
+        <h2 className="text-sm font-semibold text-primary uppercase tracking-wider">Apoio Político</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <Field label="Já tem candidato para Deputado Estadual?">
+            <Select value={form.tem_candidato_deputado} onValueChange={(v) => set("tem_candidato_deputado", v)}>
+              <SelectTrigger className="bg-card shadow-sm border-border h-11"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Sim">Sim</SelectItem>
+                <SelectItem value="Não">Não</SelectItem>
+              </SelectContent>
+            </Select>
+          </Field>
+          {form.tem_candidato_deputado === "Sim" && (
+            <Field label="Quem é o candidato?">
+              <Input value={form.nome_candidato_deputado} onChange={(e) => set("nome_candidato_deputado", e.target.value)} placeholder="Nome do Deputado" className="bg-card shadow-sm border-border h-11" />
+            </Field>
+          )}
+        </div>
+      </section>
+
       {/* Assinatura */}
       <section className="bg-card rounded-2xl border border-border p-4 space-y-3 shadow-sm">
         <h2 className="text-sm font-semibold text-primary uppercase tracking-wider flex items-center gap-2">
@@ -414,7 +445,7 @@ export default function Cadastro({ initial, onSaved }: Props) {
       <Button
         onClick={handleSave}
         disabled={saving}
-        className="w-full bg-gradient-to-r from-pink-500 to-rose-400 hover:opacity-90 text-white font-semibold h-12 text-base shadow-lg active:scale-[0.98] transition-transform"
+        className="w-full bg-gradient-to-r from-pink-500 to-rose-400 hover:opacity-90 text-white font-semibold h-12 text-base shadow-lg active:scale-[0.98] transition-transform touch-manipulation"
       >
         {saving ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
         {saving ? "Salvando..." : initial?.id ? "Atualizar Ficha" : "Salvar Ficha"}

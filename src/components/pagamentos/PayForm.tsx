@@ -266,7 +266,7 @@ export function PayForm({ pessoaNome, categorias, onSave, onCancel, saving, supl
       )}
 
       <Button onClick={() => onSave(valorNum, obs, cat)} disabled={saving || valorNum <= 0}
-        className="w-full h-11 bg-gradient-to-r from-pink-500 to-rose-400 text-white font-bold text-sm">
+        className="w-full h-11 bg-gradient-to-r from-pink-500 to-rose-400 text-white font-bold text-sm touch-manipulation">
         {saving ? <Loader2 size={16} className="animate-spin mr-2" /> : <Save size={16} className="mr-2" />}
         {saving ? "Salvando..." : `Registrar ${fmt(valorNum)}`}
       </Button>
