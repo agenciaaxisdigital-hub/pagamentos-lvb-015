@@ -32,7 +32,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     "Notification" in window ? Notification.permission : "denied"
   );
 
-  const touchStartY = useRef(0);
+  const touchStartY = useRef<number | null>(null);
   const [pullDelta, setPullDelta] = useState(0);
 
   const handleEnableNotifications = async () => {
@@ -74,12 +74,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
   }, []);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (!touchStartY.current || refreshing) return;
+    if (touchStartY.current === null || refreshing) return;
     const delta = e.touches[0].clientY - touchStartY.current;
     if (delta > 0 && (mainRef.current?.scrollTop ?? 1) === 0) {
       setPullDelta(Math.min(delta, PULL_THRESHOLD + 30));
     } else {
-      touchStartY.current = 0;
+      touchStartY.current = null;
       setPullDelta(0);
     }
   }, [refreshing]);
@@ -89,7 +89,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       await handleForceRefresh();
     }
     setPullDelta(0);
-    touchStartY.current = 0;
+    touchStartY.current = null;
   }, [pullDelta, handleForceRefresh]);
 
   const showInstallBanner = (canInstall && !dismissedInstall) || showIOSInstall;

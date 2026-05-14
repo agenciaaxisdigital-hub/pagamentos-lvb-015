@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useDeleteWithUndo } from "@/hooks/useDeleteWithUndo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,12 +22,13 @@ export default function Usuarios() {
   const [loading, setLoading] = useState(false);
   const [cargo, setCargo] = useState("admin");
 
+  const qc = useQueryClient();
+  const { deleteWithUndo } = useDeleteWithUndo();
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [editingUsername, setEditingUsername] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const { data: users, refetch, isLoading: loadingUsers } = useQuery({
     queryKey: ["usuarios"],
@@ -63,19 +65,20 @@ export default function Usuarios() {
 
   const isRH_Selected = cargo === "administrativo";
 
-  const handleDelete = async (userId: string, name: string) => {
-    if (!confirm(`Excluir o usuário "${name}"? Esta ação não pode ser desfeita.`)) return;
-    setDeletingId(userId);
-    const { data, error } = await supabase.functions.invoke("manage-users", {
-      body: { action: "delete", userId },
+  const handleDelete = (userId: string, name: string) => {
+    deleteWithUndo({
+      queryKey: ["usuarios"],
+      itemId: userId,
+      deleteFn: async () => {
+        const { data, error } = await supabase.functions.invoke("manage-users", {
+          body: { action: "delete", userId },
+        });
+        const msg = data?.error || error?.message;
+        return { error: msg ? { message: msg } : null };
+      },
+      label: name,
+      onAfterDelete: () => qc.invalidateQueries({ queryKey: ["usuarios"] }),
     });
-    setDeletingId(null);
-    if (error || data?.error) {
-      toast({ title: "Erro ao excluir", description: data?.error || error?.message, variant: "destructive" });
-    } else {
-      toast({ title: "Usuário excluído" });
-      refetch();
-    }
   };
 
   const handleUpdatePassword = async () => {
@@ -208,7 +211,6 @@ export default function Usuarios() {
             <div className="space-y-2">
               {users.map((u) => {
                 const name = usernameFromEmail(u.email);
-                const isDeleting = deletingId === u.id;
                 return (
                   <div key={u.id} className="bg-card rounded-2xl border border-border p-4 flex items-center justify-between gap-3 shadow-sm">
                     <div className="flex items-center gap-3 min-w-0">
@@ -245,10 +247,9 @@ export default function Usuarios() {
                         size="icon"
                         className="h-8 w-8 text-destructive"
                         onClick={() => handleDelete(u.id, name)}
-                        disabled={isDeleting}
                         title="Excluir usuário"
                       >
-                        {isDeleting ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
+                        <Trash2 size={15} />
                       </Button>
                     </div>
                   </div>

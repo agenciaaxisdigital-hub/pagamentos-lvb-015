@@ -29,13 +29,18 @@ export function useDeleteWithUndo() {
 
     const timer = setTimeout(async () => {
       if (cancelled) return;
-      const { error } = await deleteFn();
-      if (error) {
+      try {
+        const { error } = await deleteFn();
+        if (error) {
+          restore();
+          toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
+        } else {
+          qc.invalidateQueries({ queryKey });
+          onAfterDelete?.();
+        }
+      } catch (err: any) {
         restore();
-        toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
-      } else {
-        qc.invalidateQueries({ queryKey });
-        onAfterDelete?.();
+        toast({ title: "Erro ao excluir", description: err?.message ?? "Erro de rede", variant: "destructive" });
       }
     }, 4500);
 

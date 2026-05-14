@@ -141,7 +141,7 @@ export function SuplentePayCard({ s, pagsMes, pagsTodos, mes, ano, nomesMap }: S
     deleteWithUndo({
       queryKey: ["pagamentos"],
       itemId: pagId,
-      deleteFn: () => supabase.from("pagamentos").delete().eq("id", pagId),
+      deleteFn: async () => supabase.from("pagamentos").delete().eq("id", pagId),
       label: "Pagamento",
     });
   };

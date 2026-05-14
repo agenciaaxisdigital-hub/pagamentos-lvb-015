@@ -96,7 +96,7 @@ export function PessoaPayCard({ tipo, id, nome, subtitulo, valorEsperado, pagsMe
     deleteWithUndo({
       queryKey: ["pagamentos"],
       itemId: pagId,
-      deleteFn: () => supabase.from("pagamentos").delete().eq("id", pagId),
+      deleteFn: async () => supabase.from("pagamentos").delete().eq("id", pagId),
       label: "Pagamento",
     });
   };
