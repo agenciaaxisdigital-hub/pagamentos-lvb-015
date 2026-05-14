@@ -171,6 +171,15 @@ export default function CadastroLideranca() {
         toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
       } else {
         toast({ title: id ? "Dados atualizados!" : "Cadastrado com sucesso!" });
+        if (id) {
+          qc.setQueriesData<any[]>({ queryKey: ["liderancas"] }, (old) =>
+            Array.isArray(old) ? old.map(l => l.id === id ? { ...l, ...payload } : l) : (old ?? [])
+          );
+        } else {
+          qc.setQueriesData<any[]>({ queryKey: ["liderancas"] }, (old) =>
+            Array.isArray(old) ? [...old, { id: `opt-${Date.now()}`, ...payload }].sort((a, b) => (a.nome || "").localeCompare(b.nome || "")) : (old ?? [])
+          );
+        }
         qc.invalidateQueries();
         navigate("/liderancas");
       }

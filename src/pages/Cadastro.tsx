@@ -211,7 +211,16 @@ export default function Cadastro({ initial, onSaved }: Props) {
       if (error) {
         toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
       } else {
-        await qc.invalidateQueries();
+        if (initial?.id) {
+          qc.setQueriesData<any[]>({ queryKey: ["suplentes"] }, (old) =>
+            Array.isArray(old) ? old.map(s => s.id === initial.id ? { ...s, ...payload, total_campanha: totalCampanha } : s) : (old ?? [])
+          );
+        } else {
+          qc.setQueriesData<any[]>({ queryKey: ["suplentes"] }, (old) =>
+            Array.isArray(old) ? [...old, { id: `opt-${Date.now()}`, ...payload, total_campanha: totalCampanha }].sort((a, b) => (a.nome || "").localeCompare(b.nome || "")) : (old ?? [])
+          );
+        }
+        qc.invalidateQueries();
         toast({ title: initial?.id ? "Atualizado!" : "Cadastrado com sucesso!" });
         if (!initial?.id) setForm(defaultForm);
         onSaved?.();

@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, ChevronRight, MapPin, ArrowLeft, Trash2, FileDown, Loader2, Plus } from "lucide-react";
@@ -22,6 +22,7 @@ export default function Cadastros() {
   const [deleting, setDeleting] = useState<string | null>(null);
   const { cidadeAtiva } = useCidade();
 
+  const qc = useQueryClient();
   const { data: suplentes, refetch, isLoading } = useQuery({
     queryKey: ["suplentes", cidadeAtiva],
     queryFn: async () => {
@@ -33,7 +34,7 @@ export default function Cadastros() {
       if (error) throw error;
       return data;
     },
-    staleTime: 30_000,
+    staleTime: 0,
   });
 
   const normalizeStr = (str: string) =>
@@ -68,7 +69,10 @@ export default function Cadastros() {
       toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Excluído com sucesso" });
-      refetch();
+      qc.setQueriesData<any[]>({ queryKey: ["suplentes"] }, (old) =>
+        Array.isArray(old) ? old.filter(s => s.id !== id) : (old ?? [])
+      );
+      qc.invalidateQueries({ queryKey: ["suplentes"] });
     }
   };
 

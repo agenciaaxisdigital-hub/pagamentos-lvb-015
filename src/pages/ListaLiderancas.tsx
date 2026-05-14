@@ -35,7 +35,7 @@ export default function ListaLiderancas() {
       if (error) return [];
       return data;
     },
-    staleTime: 1000 * 60 * 5, // 5 minutos de cache
+    staleTime: 0, // Sem cache longo para atualização simultânea
   });
 
   const { data: todasLiderancasNomes, isLoading: loadL } = useQuery({
@@ -49,7 +49,7 @@ export default function ListaLiderancas() {
       if (error) return [];
       return data;
     },
-    staleTime: 1000 * 60 * 5,
+    staleTime: 0,
   });
 
   const nomesMap = useMemo(() => {
@@ -70,7 +70,7 @@ export default function ListaLiderancas() {
       if (error) throw error;
       return data;
     },
-    staleTime: 30_000,
+    staleTime: 0,
   });
 
   const isLoading = loadData || loadS || loadL;
@@ -104,6 +104,9 @@ export default function ListaLiderancas() {
       toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Excluído com sucesso" });
+      qc.setQueriesData<any[]>({ queryKey: ["liderancas"] }, (old) =>
+        Array.isArray(old) ? old.filter(l => l.id !== id) : (old ?? [])
+      );
       qc.invalidateQueries({ queryKey: ["liderancas"] });
       qc.invalidateQueries({ queryKey: ["liderancas-nomes-map"] });
     }

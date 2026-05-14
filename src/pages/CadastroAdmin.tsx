@@ -118,6 +118,15 @@ export default function CadastroAdmin() {
         toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
       } else {
         toast({ title: id ? "Atualizado!" : "Funcionário cadastrado!" });
+        if (id) {
+          qc.setQueriesData<any[]>({ queryKey: ["administrativo"] }, (old) =>
+            Array.isArray(old) ? old.map(f => f.id === id ? { ...f, ...payload, id } : f) : (old ?? [])
+          );
+        } else {
+          qc.setQueriesData<any[]>({ queryKey: ["administrativo"] }, (old) =>
+            Array.isArray(old) ? [...old, { id: `opt-${Date.now()}`, ...payload }].sort((a, b) => (a.nome || "").localeCompare(b.nome || "")) : (old ?? [])
+          );
+        }
         qc.invalidateQueries();
         navigate("/administrativo");
       }

@@ -32,7 +32,7 @@ export default function ListaAdmin() {
       if (error) return [];
       return data;
     },
-    staleTime: 1000 * 60 * 5,
+    staleTime: 0,
   });
 
   const nomesMap = useMemo(() => {
@@ -52,7 +52,7 @@ export default function ListaAdmin() {
       if (error) throw error;
       return data;
     },
-    staleTime: 1000 * 60 * 5,
+    staleTime: 0,
   });
 
   const isLoading = loadData || loadS;
@@ -73,6 +73,9 @@ export default function ListaAdmin() {
       toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Excluído com sucesso" });
+      qc.setQueriesData<any[]>({ queryKey: ["administrativo"] }, (old) =>
+        Array.isArray(old) ? old.filter(f => f.id !== id) : (old ?? [])
+      );
       qc.invalidateQueries({ queryKey: ["administrativo"] });
     }
   };

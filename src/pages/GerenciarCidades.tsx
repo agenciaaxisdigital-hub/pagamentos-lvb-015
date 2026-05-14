@@ -79,6 +79,10 @@ export default function GerenciarCidades() {
     } else {
       toast({ title: `${nome} adicionada!` });
       setNome("");
+      qc.setQueriesData<any[]>({ queryKey: ["municipios-admin"] }, (old) => {
+        const nova = { id: `opt-${Date.now()}`, nome: nome.trim(), uf: uf.trim().toUpperCase() || "GO", ativo: true, criado_em: new Date().toISOString() };
+        return Array.isArray(old) ? [...old, nova].sort((a, b) => a.nome.localeCompare(b.nome)) : [nova];
+      });
       qc.invalidateQueries({ queryKey: ["municipios-admin"] });
       refetchMunicipios();
     }
@@ -89,6 +93,9 @@ export default function GerenciarCidades() {
     if (error) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     } else {
+      qc.setQueriesData<any[]>({ queryKey: ["municipios-admin"] }, (old) =>
+        Array.isArray(old) ? old.map(c => c.id === id ? { ...c, ativo: !ativo } : c) : (old ?? [])
+      );
       qc.invalidateQueries({ queryKey: ["municipios-admin"] });
       refetchMunicipios();
     }
