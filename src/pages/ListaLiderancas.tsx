@@ -6,15 +6,16 @@ import { usePersistedState } from "@/hooks/usePersistedState";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Plus, MapPin, Phone, ChevronRight, FileDown, Filter } from "lucide-react";
+import { Search, Plus, MapPin, Phone, ChevronRight, FileDown, Filter, Pause } from "lucide-react";
 import { exportLiderancasExcel, exportLiderancaPDF } from "@/lib/exports";
 import { PageTransition } from "@/components/PageTransition";
 import { CardSkeletonList } from "@/components/CardSkeleton";
 import { useCidade } from "@/contexts/CidadeContext";
 import { fmt } from "@/components/dashboard/types";
 import { mergePausados, pauseCollaborator, reactivateCollaborator } from "@/lib/pausadosFallback";
+import { toast } from "@/hooks/use-toast";
 
-const norm = (s: string) => (s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+const norm = (s: any) => (s ? String(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : "");
 
 export default function ListaLiderancas() {
   const navigate = useNavigate();
@@ -246,16 +247,16 @@ export default function ListaLiderancas() {
                             </span>
                           )}
                           {l.ligacao_politica && <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{l.ligacao_politica}</span>}
-                          {l.suplente_id && nomesMap[l.suplente_id] && (
+                          {l.suplente_id && nomesMap?.[l.suplente_id] && (
                             <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-tight px-2 py-0.5 rounded-full bg-gradient-to-r from-violet-500/10 to-purple-500/10 text-violet-700 dark:text-violet-400 border border-violet-500/20 shadow-sm">
                               <div className="w-1 h-1 rounded-full bg-violet-500 animate-pulse" />
-                              Suplente: {nomesMap[l.suplente_id]}
+                              Suplente: {nomesMap?.[l.suplente_id]}
                             </span>
                           )}
-                          {l.lideranca_vinculada_id && nomesMap[l.lideranca_vinculada_id] && (
+                          {l.lideranca_vinculada_id && nomesMap?.[l.lideranca_vinculada_id] && (
                             <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-tight px-2 py-0.5 rounded-full bg-gradient-to-r from-slate-500/10 to-slate-400/10 text-slate-700 dark:text-slate-400 border border-slate-500/20 shadow-sm">
                               <div className="w-1 h-1 rounded-full bg-slate-500 animate-pulse" />
-                              Vínculo: {nomesMap[l.lideranca_vinculada_id]}
+                              Vínculo: {nomesMap?.[l.lideranca_vinculada_id]}
                             </span>
                           )}
                         </div>

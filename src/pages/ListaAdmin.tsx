@@ -5,15 +5,16 @@ import { useQuery } from "@tanstack/react-query";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Plus, Phone, ChevronRight, FileDown, FileText } from "lucide-react";
+import { Search, Plus, Phone, ChevronRight, FileDown, FileText, Pause } from "lucide-react";
 import { exportAdminPDF } from "@/lib/exports";
 import { PageTransition } from "@/components/PageTransition";
 import { CardSkeletonList } from "@/components/CardSkeleton";
 import { useCidade } from "@/contexts/CidadeContext";
 import { mergePausados, pauseCollaborator, reactivateCollaborator } from "@/lib/pausadosFallback";
+import { toast } from "@/hooks/use-toast";
 
 const fmt = (v: number) => (v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+const norm = (s: any) => (s ? String(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : "");
 
 export default function ListaAdmin() {
   const navigate = useNavigate();
@@ -168,10 +169,10 @@ export default function ListaAdmin() {
                               <Phone size={9} /> {f.whatsapp}
                             </span>
                           )}
-                          {f.suplente_id && nomesMap[f.suplente_id] && (
+                          {f.suplente_id && nomesMap?.[f.suplente_id] && (
                             <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-tight px-2 py-0.5 rounded-full bg-gradient-to-r from-violet-500/10 to-purple-500/10 text-violet-700 dark:text-violet-400 border border-violet-500/20 shadow-sm">
                               <div className="w-1 h-1 rounded-full bg-violet-500 animate-pulse" />
-                              Suplente: {nomesMap[f.suplente_id]}
+                              Suplente: {nomesMap?.[f.suplente_id]}
                             </span>
                           )}
                         </div>
