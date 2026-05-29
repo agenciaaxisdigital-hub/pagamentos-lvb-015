@@ -35,7 +35,7 @@ const MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho",
   "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 
 const fmt = (v: number) => (v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+const norm = (s: any) => (s ? String(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : "");
 
 type Pagamento = {
   id: string;

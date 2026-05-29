@@ -58,7 +58,8 @@ export function PessoaPayCard({ tipo, id, nome, subtitulo, valorEsperado, pagsMe
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
   const [showHist, setShowHist] = useState(false);
-  const totalPagoRaw = pagsMes.reduce((a, p) => a + p.valor, 0);
+  const safePagsMes = pagsMes || [];
+  const totalPagoRaw = safePagsMes.reduce((a, p) => a + (p.valor || 0), 0);
   const totalPago = Math.min(totalPagoRaw, valorEsperado);
   const faltando = Math.max(0, valorEsperado - totalPago);
   const isPago = totalPago >= valorEsperado;
