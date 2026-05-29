@@ -1,11 +1,13 @@
 import { useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
-import { CheckCircle2, ChevronDown, ChevronUp, DollarSign, Users } from "lucide-react";
+import { CheckCircle2, ChevronDown, ChevronUp, DollarSign, Users, Pause } from "lucide-react";
 import { PayForm } from "./PayForm";
 import { HistoricoItem } from "./HistoricoItem";
 import { useDeleteWithUndo } from "@/hooks/useDeleteWithUndo";
+import { pauseCollaborator } from "@/lib/pausadosFallback";
 
 const fmt = (v: number) => (v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -45,9 +47,11 @@ interface PessoaPayCardProps {
   suplente_id?: string | null;
   lideranca_vinculada_id?: string | null;
   nomesMap?: Record<string, string>;
+  dia_vencimento?: number | null;
 }
 
-export function PessoaPayCard({ tipo, id, nome, subtitulo, valorEsperado, pagsMes, mes, ano, createdAt, suplente_id, lideranca_vinculada_id, nomesMap }: PessoaPayCardProps) {
+export function PessoaPayCard({ tipo, id, nome, subtitulo, valorEsperado, pagsMes, mes, ano, createdAt, suplente_id, lideranca_vinculada_id, nomesMap, dia_vencimento }: PessoaPayCardProps) {
+  const navigate = useNavigate();
   const qc = useQueryClient();
   const { deleteWithUndo } = useDeleteWithUndo();
   const [paying, setPaying] = useState(false);
@@ -58,9 +62,16 @@ export function PessoaPayCard({ tipo, id, nome, subtitulo, valorEsperado, pagsMe
   const totalPago = Math.min(totalPagoRaw, valorEsperado);
   const faltando = Math.max(0, valorEsperado - totalPago);
   const isPago = totalPago >= valorEsperado;
+  
+  const venceDia = dia_vencimento ?? 10;
+  const now = new Date();
+  const isRefPast = ano < now.getFullYear() || (ano === now.getFullYear() && mes < (now.getMonth() + 1));
+  const isRefCurrent = ano === now.getFullYear() && mes === (now.getMonth() + 1);
+  const isVencido = !isPago && (isRefPast || (isRefCurrent && now.getDate() > venceDia));
+  
   const catPadrao = tipo === "lideranca" ? "retirada" : "salario";
 
-  const handleSave = async (valor: number, obs: string) => {
+  const handleSave = async (valor: number, obs: string, dataPagamento?: string) => {
     if (savingRef.current) return;
     savingRef.current = true;
     setSaving(true);
@@ -73,6 +84,10 @@ export function PessoaPayCard({ tipo, id, nome, subtitulo, valorEsperado, pagsMe
       const payload: Record<string, string | number | null> = { tipo_pessoa: tipo, mes, ano, categoria: catPadrao, valor, observacao: obs || null };
       if (tipo === "lideranca") payload.lideranca_id = id;
       else payload.admin_id = id;
+
+      const createdAtVal = dataPagamento ? new Date(dataPagamento + "T12:00:00").toISOString() : new Date().toISOString();
+      payload.created_at = createdAtVal;
+
       const { error } = await supabase.from("pagamentos").insert(payload);
       if (error) {
         toast({ title: "Erro", description: error.message, variant: "destructive" });
@@ -82,7 +97,7 @@ export function PessoaPayCard({ tipo, id, nome, subtitulo, valorEsperado, pagsMe
       const novoId = `opt-${Date.now()}`;
       const pessoaKey = tipo === "lideranca" ? { lideranca_id: id, admin_id: null, suplente_id: null } : { admin_id: id, lideranca_id: null, suplente_id: null };
       qc.setQueriesData<Pagamento[]>({ queryKey: ["pagamentos"] }, (old) =>
-        Array.isArray(old) ? [...old, { id: novoId, ...pessoaKey, tipo_pessoa: tipo, mes, ano, categoria: catPadrao, valor, observacao: obs || null, created_at: new Date().toISOString() }] : (old ?? [])
+        Array.isArray(old) ? [...old, { id: novoId, ...pessoaKey, tipo_pessoa: tipo, mes, ano, categoria: catPadrao, valor, observacao: obs || null, created_at: createdAtVal }] : (old ?? [])
       );
       setPaying(false);
       qc.invalidateQueries({ queryKey: ["pagamentos"] });
@@ -101,31 +116,68 @@ export function PessoaPayCard({ tipo, id, nome, subtitulo, valorEsperado, pagsMe
     });
   };
 
+  const handlePause = async () => {
+    const confirm = window.confirm(`Deseja pausar ${nome}? Ele não aparecerá mais na lista ativa de pagamentos.`);
+    if (!confirm) return;
+    
+    const { success, error } = await pauseCollaborator(id, tipo);
+    if (!success) {
+      toast({ title: "Erro ao pausar", description: error?.message || "Erro desconhecido", variant: "destructive" });
+      return;
+    }
+    toast({ title: `${nome} pausado!`, description: "Ele foi movido para a aba de pausados." });
+    navigate("/pausados");
+    qc.invalidateQueries();
+  };
+
   return (
     <div className={`bg-card rounded-2xl border shadow-sm overflow-hidden ${isPago ? "border-green-500/20" : "border-amber-500/30"}`}>
       <div className="p-3">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
-            <p className="font-bold text-foreground text-sm text-wrap-anywhere">{nome}</p>
-            {subtitulo && <p className="text-[11px] text-muted-foreground text-wrap-anywhere">{subtitulo}</p>}
+            <div className="flex items-center gap-1.5">
+              <p className="font-bold text-foreground text-sm text-wrap-anywhere">{nome}</p>
+              <div className="flex items-center gap-1 shrink-0">
+                <button
+                  onClick={handlePause}
+                  className="text-muted-foreground hover:text-amber-500 p-0.5 rounded transition-colors"
+                  title="Pausar colaborador"
+                >
+                  <Pause size={12} />
+                </button>
+              </div>
+            </div>
+            {subtitulo && <p className="text-[11px] text-muted-foreground text-wrap-anywhere mb-1">{subtitulo}</p>}
             
-            {suplente_id && nomesMap?.[suplente_id] && (
-              <div className="flex items-center gap-1 mt-1">
-                <Users size={10} className="text-pink-500/60" />
-                <span className="text-[10px] text-pink-500/80 font-medium text-wrap-anywhere">
-                  Suplente: {nomesMap[suplente_id]}
-                </span>
-              </div>
-            )}
+            <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+              <span className={`inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-tight px-1.5 py-0.5 rounded-md border ${
+                isPago 
+                  ? "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20" 
+                  : isVencido 
+                    ? "bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/30 animate-pulse font-extrabold" 
+                    : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
+              }`}>
+                📅 Vence Dia {venceDia} {isVencido && "• EM ATRASO"}
+              </span>
 
-            {lideranca_vinculada_id && nomesMap?.[lideranca_vinculada_id] && (
-              <div className="flex items-center gap-1 mt-0.5">
-                <Users size={10} className="text-violet-500/60" />
-                <span className="text-[10px] text-violet-500/80 font-medium text-wrap-anywhere">
-                  Vínculo: {nomesMap[lideranca_vinculada_id]}
-                </span>
-              </div>
-            )}
+              {suplente_id && nomesMap?.[suplente_id] && (
+                <div className="flex items-center gap-1 bg-sky-500/10 border border-sky-500/20 px-1.5 py-0.5 rounded-md">
+                  <Users size={10} className="text-sky-400/60" />
+                  <span className="text-[9px] text-sky-400 font-medium truncate max-w-[120px]">
+                    Suplente: {nomesMap[suplente_id]}
+                  </span>
+                </div>
+              )}
+
+              {lideranca_vinculada_id && nomesMap?.[lideranca_vinculada_id] && (
+                <div className="flex items-center gap-1 bg-violet-500/10 border border-violet-500/20 px-1.5 py-0.5 rounded-md">
+                  <Users size={10} className="text-violet-500/60" />
+                  <span className="text-[9px] text-violet-500 font-medium truncate max-w-[120px]">
+                    Vínculo: {nomesMap[lideranca_vinculada_id]}
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
           <div className="text-right shrink-0">
             {isPago ? (
@@ -155,7 +207,7 @@ export function PessoaPayCard({ tipo, id, nome, subtitulo, valorEsperado, pagsMe
 
       <div className="flex border-t border-border/30 divide-x divide-border/30">
         <button onClick={() => { setPaying(!paying); setShowHist(false); }}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-[11px] font-bold touch-manipulation ${!isPago ? "text-white bg-gradient-to-r from-pink-500 to-rose-400" : "text-primary hover:bg-primary/5"}`}>
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-[11px] font-bold touch-manipulation ${!isPago ? "text-white bg-gradient-to-r from-slate-700 to-slate-500" : "text-primary hover:bg-primary/5"}`}>
           <DollarSign size={12} /> {isPago ? "+ Extra" : "Pagar"}
         </button>
         {pagsMes.length > 0 && (
@@ -171,7 +223,7 @@ export function PessoaPayCard({ tipo, id, nome, subtitulo, valorEsperado, pagsMe
           <PayForm
             pessoaNome={nome}
             categorias={[{ key: catPadrao, label: tipo === "lideranca" ? "Retirada" : "Salário", planejado: valorEsperado, pago: totalPago, detalhe: `${fmt(valorEsperado)}/mês`, qtd: valorEsperado, valorUnit: 1 }]}
-            onSave={(v, o) => handleSave(v, o)}
+            onSave={(v, o, c, d) => handleSave(v, o, d)}
             onCancel={() => setPaying(false)}
             saving={saving}
           />

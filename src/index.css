@@ -4,59 +4,59 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 220 20% 15%;
+    --background: 210 20% 98%;
+    --foreground: 222 47% 11%;
     --card: 0 0% 100%;
-    --card-foreground: 220 20% 15%;
+    --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 220 20% 15%;
-    --primary: 340 82% 55%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 220 8% 25%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 340 30% 96%;
-    --secondary-foreground: 220 20% 25%;
-    --muted: 220 10% 96%;
-    --muted-foreground: 220 10% 45%;
-    --accent: 340 82% 55%;
+    --secondary: 220 5% 92%;
+    --secondary-foreground: 220 8% 20%;
+    --muted: 220 8% 94%;
+    --muted-foreground: 220 6% 45%;
+    --accent: 220 8% 25%;
     --accent-foreground: 0 0% 100%;
-    --destructive: 0 72% 51%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 220 10% 90%;
-    --input: 220 10% 90%;
-    --ring: 340 82% 55%;
+    --border: 220 8% 90%;
+    --input: 220 8% 90%;
+    --ring: 220 8% 25%;
     --radius: 0.75rem;
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 220 20% 25%;
-    --sidebar-primary: 340 82% 55%;
+    --sidebar-background: 210 20% 98%;
+    --sidebar-foreground: 222 47% 20%;
+    --sidebar-primary: 220 8% 25%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 340 30% 96%;
-    --sidebar-accent-foreground: 220 20% 25%;
-    --sidebar-border: 220 10% 90%;
-    --sidebar-ring: 340 82% 55%;
+    --sidebar-accent: 220 5% 92%;
+    --sidebar-accent-foreground: 220 8% 20%;
+    --sidebar-border: 220 8% 90%;
+    --sidebar-ring: 220 8% 25%;
     --status-success: 142 71% 45%;
     --status-warning: 45 93% 47%;
     --status-alert: 25 95% 53%;
   }
 
   .dark {
-    --background: 240 10% 6%;
-    --foreground: 0 0% 95%;
-    --card: 240 10% 9%;
-    --card-foreground: 0 0% 95%;
-    --popover: 240 10% 9%;
-    --popover-foreground: 0 0% 95%;
-    --primary: 340 82% 60%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 340 20% 15%;
-    --secondary-foreground: 0 0% 90%;
-    --muted: 240 8% 14%;
-    --muted-foreground: 220 10% 55%;
-    --accent: 340 82% 60%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 240 8% 16%;
-    --input: 240 8% 16%;
-    --ring: 340 82% 60%;
+    --background: 222 47% 6%;
+    --foreground: 210 40% 98%;
+    --card: 222 47% 9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222 47% 9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 220 5% 62%;
+    --primary-foreground: 220 15% 7%;
+    --secondary: 220 10% 16%;
+    --secondary-foreground: 210 40% 95%;
+    --muted: 220 8% 14%;
+    --muted-foreground: 220 6% 55%;
+    --accent: 220 5% 62%;
+    --accent-foreground: 220 15% 7%;
+    --destructive: 0 62.8% 50.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 220 8% 18%;
+    --input: 220 8% 18%;
+    --ring: 220 5% 62%;
     --status-success: 142 71% 50%;
     --status-warning: 45 93% 52%;
     --status-alert: 25 95% 58%;
@@ -108,7 +108,7 @@
   }
   * { -webkit-tap-highlight-color: transparent; }
   button, a, input, select, textarea, [role="button"] { touch-action: manipulation; }
-  ::selection { background: hsl(340 82% 55% / 0.3); }
+  ::selection { background: hsl(220 8% 25% / 0.3); }
   input, select, textarea { font-size: 16px !important; }
   @media (display-mode: standalone) {
     body { overscroll-behavior-y: none; -webkit-user-select: none; user-select: none; }
@@ -131,12 +131,12 @@
 
 @keyframes borderPulse {
   0%, 100% {
-    border-color: rgba(236, 150, 170, 0.4);
-    box-shadow: 0 8px 40px rgba(236, 72, 153, 0.06), 0 0 15px rgba(236, 150, 170, 0.1);
+    border-color: rgba(107, 114, 128, 0.4);
+    box-shadow: 0 8px 40px rgba(107, 114, 128, 0.06), 0 0 15px rgba(107, 114, 128, 0.15);
   }
   50% {
-    border-color: rgba(236, 150, 170, 0.65);
-    box-shadow: 0 8px 40px rgba(236, 72, 153, 0.12), 0 0 25px rgba(236, 150, 170, 0.2);
+    border-color: rgba(156, 163, 175, 0.65);
+    box-shadow: 0 8px 40px rgba(156, 163, 175, 0.12), 0 0 25px rgba(107, 114, 128, 0.3);
   }
 }
 
@@ -149,7 +149,7 @@
 }
 
 .premium-gradient {
-  background: linear-gradient(135deg, hsl(340 82% 55%), hsl(340 82% 65%), hsl(340 82% 45%));
+  background: linear-gradient(135deg, #3A3D42 0%, #6B7280 50%, #9CA3AF 100%);
 }
 
 .text-gradient {
@@ -167,5 +167,5 @@
 }
 
 .premium-shadow {
-  box-shadow: 0 20px 40px -15px rgba(236, 72, 153, 0.15);
+  box-shadow: 0 20px 40px -15px rgba(107, 114, 128, 0.2);
 }

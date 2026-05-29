@@ -37,7 +37,7 @@ interface Categoria {
 interface PayFormProps {
   pessoaNome: string;
   categorias: Categoria[];
-  onSave: (valor: number, obs: string, cat: string) => Promise<void>;
+  onSave: (valor: number, obs: string, cat: string, dataPagamento?: string) => Promise<void>;
   onCancel: () => void;
   saving: boolean;
   suplenteId?: string;
@@ -52,6 +52,10 @@ export function PayForm({ pessoaNome, categorias, onSave, onCancel, saving, supl
     : 0;
   const [valor, setValor] = useState(faltaCat > 0 ? String(faltaCat) : "");
   const [obs, setObs] = useState("");
+  const [dataPagamento, setDataPagamento] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  });
   const valorNum = parseFloat(valor.replace(",", ".")) || 0;
 
   const [editCat, setEditCat] = useState<string | null>(null);
@@ -243,7 +247,7 @@ export function PayForm({ pessoaNome, categorias, onSave, onCancel, saving, supl
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div>
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Valor (R$)</p>
           <div className="relative">
@@ -251,6 +255,10 @@ export function PayForm({ pessoaNome, categorias, onSave, onCancel, saving, supl
             <Input type="number" inputMode="decimal" value={valor} onChange={e => setValor(e.target.value)}
               className="pl-8 h-11 text-base font-bold bg-card border-primary/40" placeholder="0,00" />
           </div>
+        </div>
+        <div>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Data do Pagamento</p>
+          <Input type="date" value={dataPagamento} onChange={e => setDataPagamento(e.target.value)} className="h-11 bg-card text-xs font-medium" />
         </div>
         <div>
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Observação</p>
@@ -265,8 +273,8 @@ export function PayForm({ pessoaNome, categorias, onSave, onCancel, saving, supl
         </div>
       )}
 
-      <Button onClick={() => onSave(valorNum, obs, cat)} disabled={saving || valorNum <= 0}
-        className="w-full h-11 bg-gradient-to-r from-pink-500 to-rose-400 text-white font-bold text-sm touch-manipulation">
+      <Button onClick={() => onSave(valorNum, obs, cat, dataPagamento)} disabled={saving || valorNum <= 0}
+        className="w-full h-11 bg-gradient-to-r from-slate-700 to-slate-500 text-white font-bold text-sm touch-manipulation">
         {saving ? <Loader2 size={16} className="animate-spin mr-2" /> : <Save size={16} className="mr-2" />}
         {saving ? "Salvando..." : `Registrar ${fmt(valorNum)}`}
       </Button>

@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { saveLocalVencimento, saveLocalAdminSuplente } from "@/lib/pausadosFallback";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,6 +27,7 @@ interface FormData {
   assinatura: string;
   suplente_id: string | null;
   contrato_url: string | null;
+  dia_vencimento: number;
 }
 
 const defaultForm: FormData = {
@@ -38,6 +40,7 @@ const defaultForm: FormData = {
   assinatura: "",
   suplente_id: null,
   contrato_url: null,
+  dia_vencimento: 10,
 };
 
 const fmt = (v: number) => (v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -49,6 +52,25 @@ export default function CadastroAdmin() {
   const { cidadeAtiva, municipios } = useCidade();
   const [selectedMunicipio, setSelectedMunicipio] = useState<string>(cidadeAtiva || "");
   const [showSignature, setShowSignature] = useState(false);
+  const [contratoDeMes, setContratoDeMesState] = useState<number>(6);
+
+  const handleDeMesChange = (v: number) => {
+    setContratoDeMesState(v);
+    const meses = Math.max(1, form.contrato_ate_mes - v + 1);
+    setForm((prev) => ({ ...prev, valor_contrato_meses: meses }));
+  };
+
+  const handleAteMesChange = (v: number) => {
+    setForm((prev) => {
+      let de = contratoDeMes;
+      if (v < de) {
+        de = v;
+        setContratoDeMesState(v);
+      }
+      const meses = Math.max(1, v - de + 1);
+      return { ...prev, contrato_ate_mes: v, valor_contrato_meses: meses };
+    });
+  };
 
   const { data: suplentes } = useQuery({
     queryKey: ["suplentes-select", selectedMunicipio || cidadeAtiva],
@@ -79,16 +101,20 @@ export default function CadastroAdmin() {
   const savingRef = useRef(false);
 
   if (existing && !initialized) {
+    const mesFim = existing.contrato_ate_mes || 9;
+    const meses = existing.valor_contrato_meses || 4;
+    setContratoDeMesState(Math.max(3, mesFim - meses + 1));
     setForm({
       nome: existing.nome || "",
       cpf: existing.cpf || "",
       whatsapp: existing.whatsapp || "",
       valor_contrato: existing.valor_contrato || 0,
-      contrato_ate_mes: existing.contrato_ate_mes || 9,
-      valor_contrato_meses: existing.valor_contrato_meses || 4,
+      contrato_ate_mes: mesFim,
+      valor_contrato_meses: meses,
       assinatura: existing.assinatura || "",
       suplente_id: existing.suplente_id || null,
       contrato_url: existing.contrato_url || null,
+      dia_vencimento: existing.dia_vencimento || 10,
     });
     setSelectedMunicipio(existing.municipio_id || cidadeAtiva || "");
     setInitialized(true);
@@ -106,13 +132,23 @@ export default function CadastroAdmin() {
     savingRef.current = true;
     setSaving(true);
     try {
-      const payload: any = { ...form, updated_at: new Date().toISOString() };
+      const { dia_vencimento, suplente_id, ...formClean } = form;
+      const payload: any = { ...formClean, updated_at: new Date().toISOString() };
       payload.municipio_id = selectedMunicipio || cidadeAtiva || null;
       let error;
       if (id) {
         ({ error } = await (supabase as any).from("administrativo").update(payload).eq("id", id));
+        if (!error) {
+          saveLocalVencimento(id, form.dia_vencimento);
+          saveLocalAdminSuplente(id, form.suplente_id);
+        }
       } else {
-        ({ error } = await (supabase as any).from("administrativo").insert(payload));
+        const { data, error: insertErr } = await (supabase as any).from("administrativo").insert(payload).select("id").maybeSingle();
+        error = insertErr;
+        if (!error && data?.id) {
+          saveLocalVencimento(data.id, form.dia_vencimento);
+          saveLocalAdminSuplente(data.id, form.suplente_id);
+        }
       }
       if (error) {
         toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
@@ -207,7 +243,7 @@ export default function CadastroAdmin() {
         <section className="bg-card rounded-2xl border border-border p-4 space-y-3 shadow-sm">
           <h2 className="text-sm font-semibold text-primary uppercase tracking-wider">Valor do Contrato</h2>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
             <Field label="Valor Mensal (R$)" required>
               <Input
                 type="number" inputMode="numeric"
@@ -217,8 +253,8 @@ export default function CadastroAdmin() {
                 className="bg-card shadow-sm border-border"
               />
             </Field>
-            <Field label="Contrato até (mês)">
-              <Select value={String(form.contrato_ate_mes)} onValueChange={(v) => set("contrato_ate_mes", parseInt(v))}>
+            <Field label="Início (mês)">
+              <Select value={String(contratoDeMes)} onValueChange={(v) => handleDeMesChange(parseInt(v))}>
                 <SelectTrigger className="bg-card shadow-sm border-border"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {MESES.map((m, i) => (
@@ -226,6 +262,25 @@ export default function CadastroAdmin() {
                   ))}
                 </SelectContent>
               </Select>
+            </Field>
+            <Field label="Término (mês)">
+              <Select value={String(form.contrato_ate_mes)} onValueChange={(v) => handleAteMesChange(parseInt(v))}>
+                <SelectTrigger className="bg-card shadow-sm border-border"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {MESES.map((m, i) => (
+                    <SelectItem key={i + 1} value={String(i + 1)}>{m}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label="Vencimento (dia)">
+              <Input
+                type="number" inputMode="numeric" min="1" max="31"
+                value={form.dia_vencimento || ""}
+                onChange={(e) => set("dia_vencimento", Math.min(31, Math.max(1, parseInt(e.target.value) || 10)))}
+                placeholder="10"
+                className="bg-card shadow-sm border-border"
+              />
             </Field>
           </div>
 
@@ -235,7 +290,7 @@ export default function CadastroAdmin() {
               <span className="text-base font-bold text-primary">{fmt(form.valor_contrato)}/mês</span>
             </div>
             <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-              <span>Até {MESES[(form.contrato_ate_mes || 9) - 1]} ({form.contrato_ate_mes} meses)</span>
+              <span>{MESES[contratoDeMes - 1]} a {MESES[(form.contrato_ate_mes || 9) - 1]} ({form.valor_contrato_meses} {form.valor_contrato_meses === 1 ? "mês" : "meses"})</span>
               <span className="font-bold text-foreground">Total: {fmt(totalContrato)}</span>
             </div>
           </div>
@@ -332,7 +387,7 @@ export default function CadastroAdmin() {
         <Button
           onClick={handleSave}
           disabled={saving}
-          className="w-full bg-gradient-to-r from-pink-500 to-rose-400 hover:opacity-90 text-white font-semibold h-12 text-base shadow-lg active:scale-[0.98] transition-transform touch-manipulation"
+          className="w-full bg-gradient-to-r from-slate-700 to-slate-500 hover:opacity-90 text-white font-semibold h-12 text-base shadow-lg active:scale-[0.98] transition-transform touch-manipulation"
         >
           {saving ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
           {saving ? "Salvando..." : id ? "Atualizar Funcionário" : "Salvar Funcionário"}

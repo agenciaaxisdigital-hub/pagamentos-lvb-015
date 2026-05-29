@@ -5,8 +5,8 @@ import { calcTotaisFinanceiros } from "@/lib/finance";
 import { getMesInicioComHistorico } from "@/lib/paymentEligibility";
 import { MESES_LABEL, MES_INICIO_SUP, MES_INICIO_LID, MES_INICIO_ADM, MES_FIM } from "@/components/dashboard/types";
 
-const PINK = [236, 72, 153] as const;
-const ROSE = [251, 113, 133] as const;
+const PINK = [37, 99, 235] as const;
+const ROSE = [6, 182, 212] as const;
 const DARK = [30, 30, 30] as const;
 const GRAY = [120, 120, 120] as const;
 const WHITE = [255, 255, 255] as const;
@@ -43,7 +43,7 @@ function addHeader(doc: jsPDF, title: string, filters?: ExportFilters) {
   doc.setTextColor(...WHITE);
   doc.setFontSize(16);
   doc.setFont("helvetica", "bold");
-  doc.text("Dra. Fernanda Sarelli", 14, 13);
+  doc.text("Ag�ncia Axis", 14, 13);
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
   doc.text("Pré-candidata Dep. Estadual GO 2026 — Goiânia", 14, 21);
@@ -103,10 +103,10 @@ function addFooter(doc: jsPDF) {
     doc.text(`Página ${i} de ${pages}`, w - 14, h - 6, { align: "right" });
     doc.setTextColor(...PINK);
     doc.setFont("helvetica", "bold");
-    doc.text("Dra. Fernanda Sarelli", 14, h - 6);
+    doc.text("Ag�ncia Axis", 14, h - 6);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(...GRAY);
-    doc.text(" — Pré-candidata Dep. Estadual GO 2026", 14 + doc.getTextWidth("Dra. Fernanda Sarelli") + 1, h - 6);
+    doc.text(" — Pré-candidata Dep. Estadual GO 2026", 14 + doc.getTextWidth("Ag�ncia Axis") + 1, h - 6);
   }
 }
 
@@ -194,7 +194,7 @@ export function exportSuplentePDF(s: any) {
     margin: { left: 14, right: 14 },
     headStyles: { fillColor: [...PINK], textColor: [...WHITE], fontStyle: "bold", fontSize: 8 },
     bodyStyles: { fontSize: 8, textColor: [...DARK] },
-    footStyles: { fillColor: [252, 231, 243], textColor: [...PINK], fontStyle: "bold", fontSize: 9 },
+    footStyles: { fillColor: [219, 234, 254], textColor: [...PINK], fontStyle: "bold", fontSize: 9 },
     alternateRowStyles: { fillColor: [250, 250, 250] },
     theme: "grid",
     styles: { cellPadding: 3 },
@@ -316,7 +316,7 @@ export function exportFichasLotePDF(list: any[]) {
       margin: { left: 14, right: 14 },
       headStyles: { fillColor: [...PINK], textColor: [...WHITE], fontStyle: "bold", fontSize: 8 },
       bodyStyles: { fontSize: 8, textColor: [...DARK] },
-      footStyles: { fillColor: [252, 231, 243], textColor: [...PINK], fontStyle: "bold", fontSize: 9 },
+      footStyles: { fillColor: [219, 234, 254], textColor: [...PINK], fontStyle: "bold", fontSize: 9 },
       alternateRowStyles: { fillColor: [250, 250, 250] },
       theme: "grid",
       styles: { cellPadding: 3 },
@@ -350,7 +350,7 @@ export function exportAllPDF(list: any[], filters?: ExportFilters, municipiosMap
   const cardW = (w - 28 - 3 * 4) / 4;
   cards.forEach(([val, label], i) => {
     const x = 14 + i * (cardW + 4);
-    doc.setFillColor(252, 231, 243);
+    doc.setFillColor(219, 234, 254);
     doc.roundedRect(x, y, cardW, 18, 3, 3, "F");
     doc.setDrawColor(...PINK);
     doc.setLineWidth(0.2);
@@ -413,7 +413,7 @@ export function exportAllPDF(list: any[], filters?: ExportFilters, municipiosMap
       margin: { left: 14, right: 14 },
       headStyles: { fillColor: [...PINK], textColor: [...WHITE], fontStyle: "bold", fontSize: 7, halign: "center" },
       bodyStyles: { fontSize: 7, textColor: [...DARK] },
-      footStyles: { fillColor: [252, 231, 243], textColor: [...PINK], fontStyle: "bold", fontSize: 7 },
+      footStyles: { fillColor: [219, 234, 254], textColor: [...PINK], fontStyle: "bold", fontSize: 7 },
       alternateRowStyles: { fillColor: [250, 250, 250] },
       columnStyles: {
         0: { halign: "center", cellWidth: 8 },
@@ -480,7 +480,7 @@ export function exportExcel(list: any[], filters?: ExportFilters, municipiosMap?
 
   // ── Cabeçalho e Resumo ──
   const rows: any[][] = [
-    ["DRA. FERNANDA SARELLI — PAINEL DE SUPLENTES"],
+    ["Ag�ncia Axis — PAINEL DE SUPLENTES"],
     [`Pré-candidata Dep. Estadual GO 2026 — Goiânia`],
     [`Gerado em ${now}`],
     filterLabel ? [`Filtros: ${filterLabel}`] : [],
@@ -611,7 +611,7 @@ export function exportLiderancasExcel(list: any[]) {
   const totalContrato = list.reduce((a, l) => a + (l.retirada_mensal_valor || 0) * (l.retirada_mensal_meses || 0), 0);
 
   const rows: any[][] = [
-    ["DRA. FERNANDA SARELLI — PAINEL DE LIDERANÇAS"],
+    ["Ag�ncia Axis — PAINEL DE LIDERANÇAS"],
     ["Pré-candidata Dep. Estadual GO 2026 — Goiânia"],
     [`Gerado em ${now}`],
     [],
@@ -750,7 +750,7 @@ export function exportLiderancaPDF(l: any) {
     margin: { left: 14, right: 14 },
     headStyles: { fillColor: [...PINK], textColor: [...WHITE], fontStyle: "bold", fontSize: 8 },
     bodyStyles: { fontSize: 8, textColor: [...DARK] },
-    footStyles: { fillColor: [252, 231, 243], textColor: [...PINK], fontStyle: "bold", fontSize: 9 },
+    footStyles: { fillColor: [219, 234, 254], textColor: [...PINK], fontStyle: "bold", fontSize: 9 },
     theme: "grid",
     styles: { cellPadding: 3 },
   });
@@ -840,7 +840,7 @@ export function exportAdminPDF(a: any) {
     margin: { left: 14, right: 14 },
     headStyles: { fillColor: [...PINK], textColor: [...WHITE], fontStyle: "bold", fontSize: 8 },
     bodyStyles: { fontSize: 8, textColor: [...DARK] },
-    footStyles: { fillColor: [252, 231, 243], textColor: [...PINK], fontStyle: "bold", fontSize: 9 },
+    footStyles: { fillColor: [219, 234, 254], textColor: [...PINK], fontStyle: "bold", fontSize: 9 },
     theme: "grid",
     styles: { cellPadding: 3 },
   });
@@ -906,7 +906,7 @@ export function exportAuditPDF(data: AuditExportData) {
   // Helper: city subtitle
   const cityTitle = (nome: string, extra: string) => {
     checkPage(25);
-    doc.setFillColor(252, 231, 243);
+    doc.setFillColor(219, 234, 254);
     doc.roundedRect(14, y - 3, w - 28, 8, 2, 2, "F");
     doc.setFontSize(9);
     doc.setFont("helvetica", "bold");
@@ -1030,7 +1030,7 @@ export function exportAuditPDF(data: AuditExportData) {
       margin: { left: 14, right: 14 },
       headStyles: { fillColor: [...PINK], textColor: [...WHITE], fontStyle: "bold", fontSize: 7, halign: "center" },
       bodyStyles: { fontSize: 7, textColor: [...DARK] },
-      footStyles: { fillColor: [252, 231, 243], textColor: [...PINK], fontStyle: "bold", fontSize: 7 },
+      footStyles: { fillColor: [219, 234, 254], textColor: [...PINK], fontStyle: "bold", fontSize: 7 },
       alternateRowStyles: { fillColor: [250, 250, 250] },
       theme: "grid",
       styles: { cellPadding: 2 },
@@ -1079,7 +1079,7 @@ export function exportAuditPDF(data: AuditExportData) {
         margin: { left: 14, right: 14 },
         headStyles: { fillColor: [...PINK], textColor: [...WHITE], fontStyle: "bold", fontSize: 5.5, halign: "center" },
         bodyStyles: { fontSize: 5.5, textColor: [...DARK] },
-        footStyles: { fillColor: [252, 231, 243], textColor: [...PINK], fontStyle: "bold", fontSize: 5.5 },
+        footStyles: { fillColor: [219, 234, 254], textColor: [...PINK], fontStyle: "bold", fontSize: 5.5 },
         alternateRowStyles: { fillColor: [250, 250, 250] },
         theme: "grid",
         styles: { cellPadding: 1.5 },
@@ -1188,7 +1188,7 @@ export function exportAuditPDF(data: AuditExportData) {
     margin: { left: 14, right: 14 },
     headStyles: { fillColor: [...DARK], textColor: [...WHITE], fontStyle: "bold", fontSize: 8, halign: "center" },
     bodyStyles: { fontSize: 8, textColor: [...DARK] },
-    footStyles: { fillColor: [252, 231, 243], textColor: [...PINK], fontStyle: "bold", fontSize: 8 },
+    footStyles: { fillColor: [219, 234, 254], textColor: [...PINK], fontStyle: "bold", fontSize: 8 },
     alternateRowStyles: { fillColor: [250, 250, 250] },
     theme: "grid",
     styles: { cellPadding: 3 },
@@ -1244,7 +1244,7 @@ export function exportAuditPDF(data: AuditExportData) {
     margin: { left: 14, right: 14 },
     headStyles: { fillColor: [...DARK], textColor: [...WHITE], fontStyle: "bold", fontSize: 7, halign: "center" },
     bodyStyles: { fontSize: 7, textColor: [...DARK] },
-    footStyles: { fillColor: [252, 231, 243], textColor: [...PINK], fontStyle: "bold", fontSize: 7 },
+    footStyles: { fillColor: [219, 234, 254], textColor: [...PINK], fontStyle: "bold", fontSize: 7 },
     alternateRowStyles: { fillColor: [250, 250, 250] },
     theme: "grid",
     styles: { cellPadding: 2 },
@@ -1259,8 +1259,9 @@ export function exportAuditPDF(data: AuditExportData) {
   doc.setFont("helvetica", "normal");
   doc.setTextColor(...GRAY);
   doc.text(`Relatorio gerado em ${new Date().toLocaleDateString("pt-BR")} as ${new Date().toLocaleTimeString("pt-BR")}`, 14, y);
-  doc.text("Dra. Fernanda Sarelli -- Pre-candidata Dep. Estadual GO 2026", 14, y + 4);
+  doc.text("Ag�ncia Axis -- Tecnologia e Gest�o Financeira", 14, y + 4);
 
   addFooter(doc);
   doc.save(`Auditoria_Completa_${new Date().toISOString().slice(0, 10)}.pdf`);
 }
+

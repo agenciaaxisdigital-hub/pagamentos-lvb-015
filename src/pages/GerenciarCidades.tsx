@@ -165,7 +165,7 @@ export default function GerenciarCidades() {
                   ))}
                 </SelectContent>
               </Select>
-              <Button onClick={handleAssignAll} disabled={assigning} size="sm" className="gap-1.5 bg-gradient-to-r from-pink-500 to-rose-400 text-white font-semibold">
+              <Button onClick={handleAssignAll} disabled={assigning} size="sm" className="gap-1.5 bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-semibold">
                 {assigning ? <Loader2 size={14} className="animate-spin" /> : <ArrowRightLeft size={14} />}
                 Vincular Todos
               </Button>
@@ -186,7 +186,7 @@ export default function GerenciarCidades() {
               <Input value={uf} onChange={e => setUf(e.target.value)} maxLength={2} className="bg-card border-border uppercase" />
             </div>
           </div>
-          <Button onClick={handleAdd} disabled={saving} className="w-full gap-2 bg-gradient-to-r from-pink-500 to-rose-400 text-white font-semibold">
+          <Button onClick={handleAdd} disabled={saving} className="w-full gap-2 bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-semibold">
             {saving ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
             Adicionar Cidade
           </Button>

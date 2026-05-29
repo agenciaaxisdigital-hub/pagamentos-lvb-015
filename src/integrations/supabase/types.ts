@@ -28,6 +28,8 @@ export type Database = {
           valor_contrato_meses: number | null
           whatsapp: string | null
           contrato_url: string | null
+          dia_vencimento: number | null
+          pausado: boolean | null
         }
         Insert: {
           assinatura?: string | null
@@ -42,6 +44,8 @@ export type Database = {
           valor_contrato_meses?: number | null
           whatsapp?: string | null
           contrato_url?: string | null
+          dia_vencimento?: number | null
+          pausado?: boolean | null
         }
         Update: {
           assinatura?: string | null
@@ -56,6 +60,8 @@ export type Database = {
           valor_contrato_meses?: number | null
           whatsapp?: string | null
           contrato_url?: string | null
+          dia_vencimento?: number | null
+          pausado?: boolean | null
         }
         Relationships: [
           {
@@ -111,6 +117,8 @@ export type Database = {
           retirada_mensal_valor: number | null
           updated_at: string
           whatsapp: string | null
+          dia_vencimento: number | null
+          pausado: boolean | null
         }
         Insert: {
           assinatura?: string | null
@@ -128,6 +136,8 @@ export type Database = {
           retirada_mensal_valor?: number | null
           updated_at?: string
           whatsapp?: string | null
+          dia_vencimento?: number | null
+          pausado?: boolean | null
         }
         Update: {
           assinatura?: string | null
@@ -145,6 +155,8 @@ export type Database = {
           retirada_mensal_valor?: number | null
           updated_at?: string
           whatsapp?: string | null
+          dia_vencimento?: number | null
+          pausado?: boolean | null
         }
         Relationships: [
           {
@@ -360,6 +372,8 @@ export type Database = {
           total_campanha: number | null
           total_votos: number | null
           updated_at: string
+          dia_vencimento: number | null
+          pausado: boolean | null
         }
         Insert: {
           ano_eleicao?: number | null
@@ -388,6 +402,8 @@ export type Database = {
           total_campanha?: number | null
           total_votos?: number | null
           updated_at?: string
+          dia_vencimento?: number | null
+          pausado?: boolean | null
         }
         Update: {
           ano_eleicao?: number | null
@@ -416,6 +432,8 @@ export type Database = {
           total_campanha?: number | null
           total_votos?: number | null
           updated_at?: string
+          dia_vencimento?: number | null
+          pausado?: boolean | null
         }
         Relationships: [
           {

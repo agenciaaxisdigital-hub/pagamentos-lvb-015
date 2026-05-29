@@ -2,23 +2,23 @@ import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { useDeleteWithUndo } from "@/hooks/useDeleteWithUndo";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Plus, Phone, Trash2, ChevronRight, FileDown, FileText } from "lucide-react";
+import { Search, Plus, Phone, ChevronRight, FileDown, FileText } from "lucide-react";
 import { exportAdminPDF } from "@/lib/exports";
 import { PageTransition } from "@/components/PageTransition";
 import { CardSkeletonList } from "@/components/CardSkeleton";
 import { useCidade } from "@/contexts/CidadeContext";
+import { mergePausados, pauseCollaborator, reactivateCollaborator } from "@/lib/pausadosFallback";
 
 const fmt = (v: number) => (v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
 export default function ListaAdmin() {
   const navigate = useNavigate();
-  const { deleteWithUndo } = useDeleteWithUndo();
   const [search, setSearch] = usePersistedState("busca-admin", "");
+  const [verPausados, setVerPausados] = usePersistedState("admin-ver-pausados", false);
   const { cidadeAtiva } = useCidade();
 
   const { data: suplentesNomes, isLoading: loadS } = useQuery({
@@ -41,10 +41,10 @@ export default function ListaAdmin() {
     return map;
   }, [suplentesNomes]);
 
-  const { data: funcionarios, isLoading: loadData } = useQuery({
+  const { data: funcionarios, refetch, isLoading: loadData } = useQuery({
     queryKey: ["administrativo", cidadeAtiva],
     queryFn: async () => {
-      let query = (supabase as any).from("administrativo").select("id, nome, cpf, whatsapp, valor_contrato, contrato_ate_mes, municipio_id, suplente_id, contrato_url").order("nome");
+      let query = (supabase as any).from("administrativo").select("id, nome, cpf, whatsapp, valor_contrato, contrato_ate_mes, municipio_id, contrato_url").order("nome");
       if (cidadeAtiva) {
         query = query.or(`municipio_id.eq.${cidadeAtiva},municipio_id.is.null`);
       }
@@ -57,20 +57,42 @@ export default function ListaAdmin() {
 
   const isLoading = loadData || loadS;
 
-  const filtered = useMemo(() => {
-    if (!funcionarios) return [];
-    if (!search.trim()) return funcionarios;
-    const term = norm(search);
-    return funcionarios.filter((f: any) => norm(f.nome || "").includes(term) || (f.cpf || "").includes(term));
-  }, [funcionarios, search]);
+  const mergedFuncionarios = useMemo(() => mergePausados(funcionarios, "admin"), [funcionarios]);
+  const adminAtivos = useMemo(() => (mergedFuncionarios || []).filter((f: any) => !f.pausado), [mergedFuncionarios]);
+  const adminPausados = useMemo(() => (mergedFuncionarios || []).filter((f: any) => f.pausado), [mergedFuncionarios]);
 
-  const handleDelete = (id: string, nome: string) => {
-    deleteWithUndo({
-      queryKey: ["administrativo"],
-      itemId: id,
-      deleteFn: async () => (supabase as any).from("administrativo").delete().eq("id", id),
-      label: nome,
-    });
+  const filtered = useMemo(() => {
+    const baseList = verPausados ? adminPausados : adminAtivos;
+    if (!baseList) return [];
+    if (!search.trim()) return baseList;
+    const term = norm(search);
+    return baseList.filter((f: any) => norm(f.nome || "").includes(term) || (f.cpf || "").includes(term));
+  }, [adminAtivos, adminPausados, search, verPausados]);
+
+  const handlePause = async (id: string, nome: string, pausar: boolean) => {
+    if (pausar) {
+      const confirm = window.confirm(`Deseja pausar ${nome}? Ele não aparecerá mais nos pagamentos ativos nem somará nas previsões do dashboard.`);
+      if (!confirm) return;
+      
+      const { success, error } = await pauseCollaborator(id, "admin");
+      if (!success) {
+        toast({ title: "Erro ao pausar", description: error?.message || "Erro desconhecido", variant: "destructive" });
+        return;
+      }
+      toast({ title: `${nome} pausado com sucesso!`, description: "Ele foi movido para a aba de Pausados." });
+      navigate("/pausados");
+    } else {
+      const confirm = window.confirm(`Deseja reativar ${nome}? Ele voltará a aparecer nos pagamentos e somar no dashboard.`);
+      if (!confirm) return;
+
+      const { success, error } = await reactivateCollaborator(id, "admin", { pausado: false });
+      if (!success) {
+        toast({ title: "Erro ao reativar", description: error?.message || "Erro desconhecido", variant: "destructive" });
+        return;
+      }
+      toast({ title: `${nome} reativado com sucesso!` });
+    }
+    refetch();
   };
 
   return (
@@ -81,7 +103,7 @@ export default function ListaAdmin() {
           <Button
             size="sm"
             onClick={() => navigate("/administrativo/novo")}
-            className="bg-gradient-to-r from-pink-500 to-rose-400 text-white gap-1.5 active:scale-95 transition-transform"
+            className="bg-gradient-to-r from-slate-700 to-slate-500 text-white gap-1.5 active:scale-95 transition-transform"
           >
             <Plus size={15} /> Novo
           </Button>
@@ -95,6 +117,22 @@ export default function ListaAdmin() {
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9 bg-card border-border"
           />
+        </div>
+
+        {/* Ativos / Pausados Tabs */}
+        <div className="flex gap-2 border-b border-border/50 pb-1.5">
+          <button
+            onClick={() => setVerPausados(false)}
+            className={`pb-1.5 px-3 text-xs font-bold transition-all relative ${!verPausados ? "text-primary border-b-2 border-primary" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            Ativos ({adminAtivos.length})
+          </button>
+          <button
+            onClick={() => setVerPausados(true)}
+            className={`pb-1.5 px-3 text-xs font-bold transition-all relative ${verPausados ? "text-primary border-b-2 border-primary" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            Pausados / Retirados ({adminPausados.length})
+          </button>
         </div>
 
         {isLoading ? (
@@ -161,12 +199,21 @@ export default function ListaAdmin() {
                         <FileText size={13} /> Contrato
                       </a>
                     )}
-                    <button
-                      onClick={() => handleDelete(f.id, f.nome)}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs text-destructive active:bg-destructive/10"
-                    >
-                      <Trash2 size={13} /> Excluir
-                    </button>
+                    {!verPausados ? (
+                      <button
+                        onClick={() => handlePause(f.id, f.nome, true)}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs text-amber-500 hover:text-amber-600 hover:bg-amber-500/5 active:bg-amber-500/10 font-bold"
+                      >
+                        <Pause size={13} /> Pausar
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handlePause(f.id, f.nome, false)}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/5 active:bg-emerald-500/10 font-bold"
+                      >
+                        <Plus size={13} /> Reativar
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}

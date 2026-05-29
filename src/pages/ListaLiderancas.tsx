@@ -2,17 +2,17 @@ import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useDeleteWithUndo } from "@/hooks/useDeleteWithUndo";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Plus, MapPin, Phone, Trash2, ChevronRight, FileDown, Filter } from "lucide-react";
+import { Search, Plus, MapPin, Phone, ChevronRight, FileDown, Filter } from "lucide-react";
 import { exportLiderancasExcel, exportLiderancaPDF } from "@/lib/exports";
 import { PageTransition } from "@/components/PageTransition";
 import { CardSkeletonList } from "@/components/CardSkeleton";
 import { useCidade } from "@/contexts/CidadeContext";
 import { fmt } from "@/components/dashboard/types";
+import { mergePausados, pauseCollaborator, reactivateCollaborator } from "@/lib/pausadosFallback";
 
 const norm = (s: string) => (s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
@@ -20,9 +20,9 @@ export default function ListaLiderancas() {
   const navigate = useNavigate();
 
   const qc = useQueryClient();
-  const { deleteWithUndo } = useDeleteWithUndo();
   const [search, setSearch] = usePersistedState("busca-liderancas", "");
   const [filtroVinculo, setFiltroVinculo] = usePersistedState<string>("filtro-vinculo-liderancas", "todos");
+  const [verPausados, setVerPausados] = usePersistedState("liderancas-ver-pausados", false);
   const { cidadeAtiva } = useCidade();
 
   const { data: suplentesNomes, isLoading: loadS } = useQuery({
@@ -60,7 +60,7 @@ export default function ListaLiderancas() {
     return map;
   }, [suplentesNomes, todasLiderancasNomes]);
 
-  const { data: liderancas, isLoading: loadData } = useQuery({
+  const { data: liderancas, refetch, isLoading: loadData } = useQuery({
     queryKey: ["liderancas", cidadeAtiva],
     queryFn: async () => {
       let query = supabase.from("liderancas").select("*").order("nome");
@@ -76,10 +76,15 @@ export default function ListaLiderancas() {
 
   const isLoading = loadData || loadS || loadL;
 
+  const mergedLiderancas = useMemo(() => mergePausados(liderancas, "lideranca"), [liderancas]);
+  const liderancasAtivas = useMemo(() => (mergedLiderancas || []).filter((l: any) => !l.pausado), [mergedLiderancas]);
+  const liderancasPausadas = useMemo(() => (mergedLiderancas || []).filter((l: any) => l.pausado), [mergedLiderancas]);
+
   const filtered = useMemo(() => {
-    if (!liderancas) return [];
+    const baseList = verPausados ? liderancasPausadas : liderancasAtivas;
+    if (!baseList) return [];
     
-    let result = liderancas;
+    let result = baseList;
     
     // Filtro por Vínculo
     if (filtroVinculo !== "todos") {
@@ -94,16 +99,33 @@ export default function ListaLiderancas() {
       norm(l.regiao || "").includes(term) ||
       norm(l.ligacao_politica || "").includes(term)
     );
-  }, [liderancas, filtroVinculo, search]);
+  }, [liderancasAtivas, liderancasPausadas, filtroVinculo, search, verPausados]);
 
-  const handleDelete = (id: string, nome: string) => {
-    deleteWithUndo({
-      queryKey: ["liderancas"],
-      itemId: id,
-      deleteFn: async () => (supabase as any).from("liderancas").delete().eq("id", id),
-      label: nome,
-      onAfterDelete: () => qc.invalidateQueries({ queryKey: ["liderancas-nomes-map"] }),
-    });
+  const handlePause = async (id: string, nome: string, pausar: boolean) => {
+    if (pausar) {
+      const confirm = window.confirm(`Deseja pausar ${nome}? Ele não aparecerá mais nos pagamentos ativos nem somará nas previsões do dashboard.`);
+      if (!confirm) return;
+      
+      const { success, error } = await pauseCollaborator(id, "lideranca");
+      if (!success) {
+        toast({ title: "Erro ao pausar", description: error?.message || "Erro desconhecido", variant: "destructive" });
+        return;
+      }
+      toast({ title: `${nome} pausado com sucesso!`, description: "Ele foi movido para a aba de Pausados." });
+      navigate("/pausados");
+    } else {
+      const confirm = window.confirm(`Deseja reativar ${nome}? Ele voltará a aparecer nos pagamentos e somar no dashboard.`);
+      if (!confirm) return;
+
+      const { success, error } = await reactivateCollaborator(id, "lideranca", { pausado: false });
+      if (!success) {
+        toast({ title: "Erro ao reativar", description: error?.message || "Erro desconhecido", variant: "destructive" });
+        return;
+      }
+      toast({ title: `${nome} reativado com sucesso!` });
+    }
+    refetch();
+    qc.invalidateQueries({ queryKey: ["liderancas-nomes-map"] });
   };
 
   const totalMensal = useMemo(() => filtered.reduce((a: number, l: any) => a + (l.retirada_mensal_valor || 0), 0), [filtered]);
@@ -117,7 +139,7 @@ export default function ListaLiderancas() {
             <Button
               size="sm"
               onClick={() => navigate("/liderancas/novo")}
-              className="bg-gradient-to-r from-pink-500 to-rose-400 text-white gap-1.5 active:scale-95 transition-transform"
+              className="bg-gradient-to-r from-slate-700 to-slate-500 text-white gap-1.5 active:scale-95 transition-transform"
             >
               <Plus size={15} /> Nova
             </Button>
@@ -172,6 +194,22 @@ export default function ListaLiderancas() {
           </div>
         </div>
 
+        {/* Ativos / Pausados Tabs */}
+        <div className="flex gap-2 border-b border-border/50 pb-1.5">
+          <button
+            onClick={() => setVerPausados(false)}
+            className={`pb-1.5 px-3 text-xs font-bold transition-all relative ${!verPausados ? "text-primary border-b-2 border-primary" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            Ativos ({liderancasAtivas.length})
+          </button>
+          <button
+            onClick={() => setVerPausados(true)}
+            className={`pb-1.5 px-3 text-xs font-bold transition-all relative ${verPausados ? "text-primary border-b-2 border-primary" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            Pausados / Retirados ({liderancasPausadas.length})
+          </button>
+        </div>
+
         {isLoading ? (
           <CardSkeletonList count={3} />
         ) : filtered.length === 0 ? (
@@ -215,8 +253,8 @@ export default function ListaLiderancas() {
                             </span>
                           )}
                           {l.lideranca_vinculada_id && nomesMap[l.lideranca_vinculada_id] && (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-tight px-2 py-0.5 rounded-full bg-gradient-to-r from-blue-500/10 to-indigo-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20 shadow-sm">
-                              <div className="w-1 h-1 rounded-full bg-blue-500 animate-pulse" />
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-tight px-2 py-0.5 rounded-full bg-gradient-to-r from-slate-500/10 to-slate-400/10 text-slate-700 dark:text-slate-400 border border-slate-500/20 shadow-sm">
+                              <div className="w-1 h-1 rounded-full bg-slate-500 animate-pulse" />
                               Vínculo: {nomesMap[l.lideranca_vinculada_id]}
                             </span>
                           )}
@@ -245,12 +283,21 @@ export default function ListaLiderancas() {
                     >
                       <FileDown size={13} /> PDF
                     </button>
-                    <button
-                      onClick={() => handleDelete(l.id, l.nome)}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs text-destructive active:bg-destructive/10"
-                    >
-                      <Trash2 size={13} /> Excluir
-                    </button>
+                    {!verPausados ? (
+                      <button
+                        onClick={() => handlePause(l.id, l.nome, true)}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs text-amber-500 hover:text-amber-600 hover:bg-amber-500/5 active:bg-amber-500/10 font-bold"
+                      >
+                        <Pause size={13} /> Pausar
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handlePause(l.id, l.nome, false)}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/5 active:bg-emerald-500/10 font-bold"
+                      >
+                        <Plus size={13} /> Reativar
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}

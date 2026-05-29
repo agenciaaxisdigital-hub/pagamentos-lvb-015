@@ -1,8 +1,8 @@
 import { NavLink } from "@/components/NavLink";
-import { Wallet, List, Users, Briefcase, MoreHorizontal, BarChart3, UserCog, LogOut, Plus, MapPin } from "lucide-react";
+import { Wallet, List, Users, Briefcase, MoreHorizontal, BarChart3, UserCog, LogOut, Plus, MapPin, Pause } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCidade } from "@/contexts/CidadeContext";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 export function BottomNav() {
@@ -11,6 +11,31 @@ export function BottomNav() {
   const [signingOut, setSigningOut] = useState(false);
   const [showMais, setShowMais] = useState(false);
   const { isAdmin, isRH } = useCidade();
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+
+  useEffect(() => {
+    const handleFocus = () => {
+      const activeEl = document.activeElement;
+      if (activeEl && (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA" || activeEl.getAttribute("contenteditable") === "true")) {
+        setIsKeyboardOpen(true);
+      }
+    };
+    const handleBlur = () => {
+      setTimeout(() => {
+        const activeEl = document.activeElement;
+        if (!activeEl || (activeEl.tagName !== "INPUT" && activeEl.tagName !== "TEXTAREA" && activeEl.getAttribute("contenteditable") !== "true")) {
+          setIsKeyboardOpen(false);
+        }
+      }, 50);
+    };
+
+    document.addEventListener("focusin", handleFocus);
+    document.addEventListener("focusout", handleBlur);
+    return () => {
+      document.removeEventListener("focusin", handleFocus);
+      document.removeEventListener("focusout", handleBlur);
+    };
+  }, []);
 
   const handleSignOut = async () => {
     setSigningOut(true);
@@ -22,6 +47,8 @@ export function BottomNav() {
   const navBase =
     "flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5 text-[9px] sm:text-[10px] py-2 px-1 min-h-[52px] transition-colors text-muted-foreground active:scale-90 active:opacity-70";
   const navActive = "text-primary font-semibold";
+
+  if (isKeyboardOpen) return null;
 
   return (
     <>
@@ -68,6 +95,13 @@ export function BottomNav() {
                   <MapPin size={17} className="text-primary" />
                   Cidades
                 </button>
+                <button
+                  onClick={() => { navigate("/pausados"); setShowMais(false); }}
+                  className="flex items-center gap-3 w-full px-3 py-2.5 text-sm text-foreground rounded-xl active:bg-muted hover:bg-muted/50"
+                >
+                  <Pause size={17} className="text-primary" />
+                  Pausados
+                </button>
                 <div className="h-px bg-border my-1" />
             <button
               onClick={handleSignOut}
@@ -111,6 +145,13 @@ export function BottomNav() {
               <Briefcase size={20} strokeWidth={1.8} />
             </div>
             <span className="truncate max-w-full">Admin</span>
+          </NavLink>
+
+          <NavLink to="/pausados" className={navBase} activeClassName={navActive}>
+            <div className="w-9 h-9 rounded-2xl flex items-center justify-center transition-all group-active:scale-95">
+              <Pause size={20} strokeWidth={1.8} />
+            </div>
+            <span className="truncate max-w-full">Pausados</span>
           </NavLink>
 
           <button

@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { exportAllPDF, exportExcel, exportAuditPDF } from "@/lib/exports";
 import { calcTotaisFinanceiros } from "@/lib/finance";
 import { getMesInicioComHistorico } from "@/lib/paymentEligibility";
+import { mergePausados, isCollaboratorPausedInMonth } from "@/lib/pausadosFallback";
 import { PageTransition } from "@/components/PageTransition";
 import { SectionSkeleton } from "@/components/dashboard/DashShared";
 import { DashResumo } from "@/components/dashboard/DashResumo";
@@ -78,18 +79,20 @@ export default function Dashboard() {
   const isLoading = loadS || loadL || loadA;
   const normalizeStr = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
-  // ─── GLOBAL LISTS (all cities, no filter) ─────────────────────────
-  const globalSup = allSuplentes ?? [];
-  const globalLid = allLiderancas ?? [];
-  const globalAdm = allAdministrativo ?? [];
-  const globalPag = pagamentos ?? [];
+  const mergedSuplentes = useMemo(() => mergePausados(allSuplentes, "suplente"), [allSuplentes]);
+  const mergedLiderancas = useMemo(() => mergePausados(allLiderancas, "lideranca"), [allLiderancas]);
+  const mergedAdministrativo = useMemo(() => mergePausados(allAdministrativo, "admin"), [allAdministrativo]);
 
-  // Pre-calcular eligibilidade para evitar O(N*M) dentro de loops de redução
+  // ─── GLOBAL LISTS (all cities, no filter) — Filter out paused collaborators
+  const globalSup = useMemo(() => (mergedSuplentes ?? []).filter((s: any) => !s.pausado), [mergedSuplentes]);
+  const globalLid = useMemo(() => (mergedLiderancas ?? []).filter((l: any) => !l.pausado), [mergedLiderancas]);
+  const globalAdm = useMemo(() => (mergedAdministrativo ?? []).filter((a: any) => !a.pausado), [mergedAdministrativo]);
+  const globalPag = pagamentos ?? [];
   const eligibilidadeMap = useMemo(() => {
     const map: Record<string, number> = {};
     if (isLoading) return map;
     
-    [...globalSup, ...globalLid, ...globalAdm].forEach(p => {
+    [...(mergedSuplentes || []), ...(mergedLiderancas || []), ...(mergedAdministrativo || [])].forEach(p => {
       const tipo = (p as any).retirada_mensal_valor !== undefined 
         ? ((p as any).regiao_atuacao !== undefined ? "suplente" : "lideranca") 
         : "admin";
@@ -107,7 +110,7 @@ export default function Dashboard() {
         // Suplentes: Mês Final fixo (MES_FIM), então início é MES_FIM - meses + 1
         manualStart = Math.max(1, MES_FIM - (p as any).retirada_mensal_meses + 1);
       }
-
+ 
       map[p.id] = getMesInicioComHistorico({
         tipo: tipo as any,
         pessoaId: p.id,
@@ -119,7 +122,7 @@ export default function Dashboard() {
       });
     });
     return map;
-  }, [globalSup, globalLid, globalAdm, globalPag, isLoading]);
+  }, [mergedSuplentes, mergedLiderancas, mergedAdministrativo, globalPag, isLoading]);
 
   // ─── FILTERED LISTS (for search/export only) ─────────────────────
   const supList = useMemo(() => {
@@ -159,18 +162,49 @@ export default function Dashboard() {
 
   // ─── GLOBAL FINANCIAL CALCULATIONS ────────────────────────────────
   const financials = useMemo(() => {
-    const totalCampanhaSup = globalSup.reduce((a: number, s: any) => a + calcTotaisFinanceiros(s).totalFinal, 0);
+    // Calculamos o total de retiradas dos suplentes considerando os meses ativos não pausados
+    const totalRetiradaSup = (mergedSuplentes || []).reduce((a: number, s: any) => {
+      const inicio = eligibilidadeMap[s.id] || MES_INICIO_SUP;
+      const numMeses = s.retirada_mensal_meses || 0;
+      const mesFimCalc = inicio + numMeses - 1;
+      const mesFim = Math.min(mesFimCalc, MES_FIM);
+      let count = 0;
+      for (let m = inicio; m <= mesFim; m++) {
+        if (!isCollaboratorPausedInMonth(s.id, "suplente", m, s.pausado, s.data_pausa)) {
+          count++;
+        }
+      }
+      return a + ((s.retirada_mensal_valor || 0) * count);
+    }, 0);
+
+    const totalCampanhaSup = (mergedSuplentes || []).reduce((a: number, s: any) => {
+      // Para cada suplente, seu total de campanha inclui as retiradas calculadas e custos pontuais
+      const inicio = eligibilidadeMap[s.id] || MES_INICIO_SUP;
+      const numMeses = s.retirada_mensal_meses || 0;
+      const mesFimCalc = inicio + numMeses - 1;
+      const mesFim = Math.min(mesFimCalc, MES_FIM);
+      let count = 0;
+      for (let m = inicio; m <= mesFim; m++) {
+        if (!isCollaboratorPausedInMonth(s.id, "suplente", m, s.pausado, s.data_pausa)) {
+          count++;
+        }
+      }
+      const plotagem = (s.plotagem_qtd || 0) * (s.plotagem_valor_unit || 0);
+      const liderancas = (s.liderancas_qtd || 0) * (s.liderancas_valor_unit || 0);
+      const fiscais = (s.fiscais_qtd || 0) * (s.fiscais_valor_unit || 0);
+      return a + ((s.retirada_mensal_valor || 0) * count) + plotagem + liderancas + fiscais;
+    }, 0);
+
     const totalRetiradaMensalSup = globalSup.reduce((a: number, s: any) => a + (s.retirada_mensal_valor || 0), 0);
-    const totalLiderancasQtd = globalSup.reduce((a: number, s: any) => a + (s.liderancas_qtd || 0), 0);
-    const totalFiscais = globalSup.reduce((a: number, s: any) => a + (s.fiscais_qtd || 0), 0);
+    const totalLiderancasQtd = (mergedSuplentes || []).reduce((a: number, s: any) => a + (s.liderancas_qtd || 0), 0);
+    const totalFiscais = (mergedSuplentes || []).reduce((a: number, s: any) => a + (s.fiscais_qtd || 0), 0);
     const totalPessoas = totalLiderancasQtd + totalFiscais + globalLid.length;
-    const totalVotos = globalSup.reduce((a: number, s: any) => a + (s.total_votos || 0), 0);
-    const totalExpectativa = globalSup.reduce((a: number, s: any) => a + (s.expectativa_votos || 0), 0);
-    const totalRetiradaSup = globalSup.reduce((a: number, s: any) => a + ((s.retirada_mensal_valor || 0) * (s.retirada_mensal_meses || 0)), 0);
-    const totalLiderancasVal = globalSup.reduce((a: number, s: any) => a + ((s.liderancas_qtd || 0) * (s.liderancas_valor_unit || 0)), 0);
-    const totalFiscaisVal = globalSup.reduce((a: number, s: any) => a + ((s.fiscais_qtd || 0) * (s.fiscais_valor_unit || 0)), 0);
-    const totalPlotagemVal = globalSup.reduce((a: number, s: any) => a + ((s.plotagem_qtd || 0) * (s.plotagem_valor_unit || 0)), 0);
-    const totalPlotagem = globalSup.reduce((a: number, s: any) => a + (s.plotagem_qtd || 0), 0);
+    const totalVotos = (mergedSuplentes || []).reduce((a: number, s: any) => a + (s.total_votos || 0), 0);
+    const totalExpectativa = (mergedSuplentes || []).reduce((a: number, s: any) => a + (s.expectativa_votos || 0), 0);
+    const totalLiderancasVal = (mergedSuplentes || []).reduce((a: number, s: any) => a + ((s.liderancas_qtd || 0) * (s.liderancas_valor_unit || 0)), 0);
+    const totalFiscaisVal = (mergedSuplentes || []).reduce((a: number, s: any) => a + ((s.fiscais_qtd || 0) * (s.fiscais_valor_unit || 0)), 0);
+    const totalPlotagemVal = (mergedSuplentes || []).reduce((a: number, s: any) => a + ((s.plotagem_qtd || 0) * (s.plotagem_valor_unit || 0)), 0);
+    const totalPlotagem = (mergedSuplentes || []).reduce((a: number, s: any) => a + (s.plotagem_qtd || 0), 0);
     const totalLidMensal = globalLid.reduce((a: number, l: any) => a + (l.retirada_mensal_valor || 0), 0);
     const totalAdmMensal = globalAdm.reduce((a: number, p: any) => a + (p.valor_contrato || 0), 0);
 
@@ -180,7 +214,7 @@ export default function Dashboard() {
       totalRetiradaSup, totalLiderancasVal, totalFiscaisVal,
       totalPlotagemVal, totalPlotagem, totalLidMensal, totalAdmMensal,
     };
-  }, [globalSup, globalLid, globalAdm]);
+  }, [globalSup, globalLid, globalAdm, mergedSuplentes, mergedLiderancas, mergedAdministrativo, eligibilidadeMap]);
 
   // ─── GLOBAL FLUXO MENSAL (all cities) ─────────────────────────────
   const fluxoMensal = useMemo(() => {
@@ -188,7 +222,10 @@ export default function Dashboard() {
     for (let m = 1; m <= MES_FIM; m++) {
       let supMes = 0, lidMes = 0, admMes = 0;
       if (m >= MES_INICIO_SUP) {
-        supMes = globalSup.reduce((a: number, s: any) => {
+        supMes = (mergedSuplentes || []).reduce((a: number, s: any) => {
+          if (isCollaboratorPausedInMonth(s.id, "suplente", m, s.pausado, s.data_pausa)) {
+            return a;
+          }
           const inicio = eligibilidadeMap[s.id] || MES_INICIO_SUP;
           const numMeses = s.retirada_mensal_meses || 0;
           const mesFimCalc = inicio + numMeses - 1;
@@ -197,14 +234,20 @@ export default function Dashboard() {
         }, 0);
       }
       if (m >= MES_INICIO_LID) {
-        lidMes = globalLid.reduce((a: number, l: any) => {
+        lidMes = (mergedLiderancas || []).reduce((a: number, l: any) => {
+          if (isCollaboratorPausedInMonth(l.id, "lideranca", m, l.pausado, l.data_pausa)) {
+            return a;
+          }
           const inicio = eligibilidadeMap[l.id] || MES_INICIO_LID;
           const ateMes = l.retirada_ate_mes || MES_FIM;
           return (m >= inicio && m <= ateMes) ? a + (l.retirada_mensal_valor || 0) : a;
         }, 0);
       }
       if (m >= MES_INICIO_ADM) {
-        admMes = globalAdm.reduce((a: number, ad: any) => {
+        admMes = (mergedAdministrativo || []).reduce((a: number, ad: any) => {
+          if (isCollaboratorPausedInMonth(ad.id, "admin", m, ad.pausado, ad.data_pausa)) {
+            return a;
+          }
           const inicio = eligibilidadeMap[ad.id] || MES_INICIO_ADM;
           const ateMes = ad.contrato_ate_mes || MES_FIM;
           return (m >= inicio && m <= ateMes) ? a + (ad.valor_contrato || 0) : a;
@@ -221,7 +264,7 @@ export default function Dashboard() {
       });
     }
     return meses;
-  }, [globalSup, globalLid, globalAdm, globalPag, eligibilidadeMap]);
+  }, [mergedSuplentes, mergedLiderancas, mergedAdministrativo, globalPag, eligibilidadeMap]);
 
   const totalPrevistoAno = useMemo(() => fluxoMensal.reduce((a, m) => a + m.total, 0), [fluxoMensal]);
   const custosPontuais = financials.totalPlotagemVal + financials.totalLiderancasVal + financials.totalFiscaisVal;
@@ -242,9 +285,9 @@ export default function Dashboard() {
   // ─── DADOS POR CIDADE (always uses ALL data) ──────────────────────
   const dadosPorCidade = useMemo<CidadeData[]>(() => {
     if (municipios.length === 0) return [];
-    const aSup = globalSup;
-    const aLid = globalLid;
-    const aAdm = globalAdm;
+    const aSup = mergedSuplentes || [];
+    const aLid = mergedLiderancas || [];
+    const aAdm = mergedAdministrativo || [];
     const aPag = globalPag;
 
     return municipios.map((mun, idx) => {
@@ -252,34 +295,77 @@ export default function Dashboard() {
       const lidCidade = aLid.filter((l: any) => l.municipio_id === mun.id);
       const admCidade = aAdm.filter((a: any) => a.municipio_id === mun.id);
 
-      const retiradaSup = supCidade.reduce((a: number, s: any) => a + ((s.retirada_mensal_valor || 0) * (s.retirada_mensal_meses || 0)), 0);
+      const retiradaSup = supCidade.reduce((a: number, s: any) => {
+        const inicio = eligibilidadeMap[s.id] || MES_INICIO_SUP;
+        const numMeses = s.retirada_mensal_meses || 0;
+        const mesFimCalc = inicio + numMeses - 1;
+        const mesFim = Math.min(mesFimCalc, MES_FIM);
+        let count = 0;
+        for (let m = inicio; m <= mesFim; m++) {
+          if (!isCollaboratorPausedInMonth(s.id, "suplente", m, s.pausado, s.data_pausa)) {
+            count++;
+          }
+        }
+        return a + ((s.retirada_mensal_valor || 0) * count);
+      }, 0);
+
       const liderancasVal = supCidade.reduce((a: number, s: any) => a + ((s.liderancas_qtd || 0) * (s.liderancas_valor_unit || 0)), 0);
       const fiscaisVal = supCidade.reduce((a: number, s: any) => a + ((s.fiscais_qtd || 0) * (s.fiscais_valor_unit || 0)), 0);
       const plotagemVal = supCidade.reduce((a: number, s: any) => a + ((s.plotagem_qtd || 0) * (s.plotagem_valor_unit || 0)), 0);
-      const orcSup = supCidade.reduce((a: number, s: any) => a + calcTotaisFinanceiros(s).totalFinal, 0);
+      
+      const orcSup = supCidade.reduce((a: number, s: any) => {
+        const inicio = eligibilidadeMap[s.id] || MES_INICIO_SUP;
+        const numMeses = s.retirada_mensal_meses || 0;
+        const mesFimCalc = inicio + numMeses - 1;
+        const mesFim = Math.min(mesFimCalc, MES_FIM);
+        let count = 0;
+        for (let m = inicio; m <= mesFim; m++) {
+          if (!isCollaboratorPausedInMonth(s.id, "suplente", m, s.pausado, s.data_pausa)) {
+            count++;
+          }
+        }
+        const plotagem = (s.plotagem_qtd || 0) * (s.plotagem_valor_unit || 0);
+        const liderancas = (s.liderancas_qtd || 0) * (s.liderancas_valor_unit || 0);
+        const fiscais = (s.fiscais_qtd || 0) * (s.fiscais_valor_unit || 0);
+        return a + ((s.retirada_mensal_valor || 0) * count) + plotagem + liderancas + fiscais;
+      }, 0);
+
       const retiradaMensalSup = supCidade.reduce((a: number, s: any) => a + (s.retirada_mensal_valor || 0), 0);
       const liderancasQtd = supCidade.reduce((a: number, s: any) => a + (s.liderancas_qtd || 0), 0);
       const fiscaisQtd = supCidade.reduce((a: number, s: any) => a + (s.fiscais_qtd || 0), 0);
       const plotagemQtd = supCidade.reduce((a: number, s: any) => a + (s.plotagem_qtd || 0), 0);
       const lidMensal = lidCidade.reduce((a: number, l: any) => a + (l.retirada_mensal_valor || 0), 0);
+      
       const orcLid = lidCidade.reduce((a: number, l: any) => {
         const duracao = l.retirada_mensal_meses || 0;
         if (duracao > 0) return a + (l.retirada_mensal_valor || 0) * duracao;
         
         const inicio = eligibilidadeMap[l.id] || MES_INICIO_LID;
         const ateMes = Math.min(l.retirada_ate_mes || MES_FIM, MES_FIM);
-        const mesesAtivos = Math.max(0, ateMes - inicio + 1);
-        return a + (l.retirada_mensal_valor || 0) * mesesAtivos;
+        let count = 0;
+        for (let m = inicio; m <= ateMes; m++) {
+          if (!isCollaboratorPausedInMonth(l.id, "lideranca", m, l.pausado, l.data_pausa)) {
+            count++;
+          }
+        }
+        return a + (l.retirada_mensal_valor || 0) * count;
       }, 0);
+
       const admMensal = admCidade.reduce((a: number, ad: any) => a + (ad.valor_contrato || 0), 0);
+      
       const orcAdm = admCidade.reduce((a: number, ad: any) => {
         const duracao = ad.valor_contrato_meses || 0;
         if (duracao > 0) return a + (ad.valor_contrato || 0) * duracao;
-
+ 
         const inicio = eligibilidadeMap[ad.id] || MES_INICIO_ADM;
         const ateMes = Math.min(ad.contrato_ate_mes || MES_FIM, MES_FIM);
-        const mesesAtivos = Math.max(0, ateMes - inicio + 1);
-        return a + (ad.valor_contrato || 0) * mesesAtivos;
+        let count = 0;
+        for (let m = inicio; m <= ateMes; m++) {
+          if (!isCollaboratorPausedInMonth(ad.id, "admin", m, ad.pausado, ad.data_pausa)) {
+            count++;
+          }
+        }
+        return a + (ad.valor_contrato || 0) * count;
       }, 0);
       const orcTotal = orcSup + orcLid + orcAdm;
 

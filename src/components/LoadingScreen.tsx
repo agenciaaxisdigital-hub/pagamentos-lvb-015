@@ -7,9 +7,9 @@ export function LoadingScreen({ message = "Carregando..." }: Props) {
     <div className="flex flex-col items-center justify-center py-20 gap-4 animate-fade-in">
       <div
         className="w-10 h-10 rounded-full border-2 border-t-transparent animate-spin"
-        style={{ borderColor: "rgba(236, 72, 153, 0.25)", borderTopColor: "#ec4899" }}
+        style={{ borderColor: "rgba(107, 114, 128, 0.25)", borderTopColor: "#9ca3af" }}
       />
-      <p className="text-xs font-medium uppercase tracking-widest" style={{ color: "#c8aa64" }}>
+      <p className="text-xs font-medium uppercase tracking-widest" style={{ color: "#9ca3af" }}>
         {message}
       </p>
     </div>

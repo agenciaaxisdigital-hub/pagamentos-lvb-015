@@ -22,13 +22,13 @@ export default defineConfig(({ mode }) => ({
       },
       includeAssets: ["placeholder.svg", "robots.txt", "icons/icon-192.png", "icons/icon-512.png"],
       manifest: {
-        name: "Sarelli - Gestão Política",
-        short_name: "Sarelli",
-        description: "Sistema de gestão política - Dra. Fernanda Sarelli",
+        name: "Agência Axis - Gestão Financeira",
+        short_name: "Axis",
+        description: "Sistema de gestão financeira e controle de pagamentos - Agência Axis",
         start_url: "/",
         display: "standalone",
-        background_color: "#ffffff",
-        theme_color: "#ec4899",
+        background_color: "#090e1a",
+        theme_color: "#3b82f6",
         orientation: "portrait",
         icons: [
           {

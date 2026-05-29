@@ -23,6 +23,8 @@ import ListaAdmin from "./pages/ListaAdmin";
 import CadastroAdmin from "./pages/CadastroAdmin";
 import GerenciarCidades from "./pages/GerenciarCidades";
 import NotFound from "./pages/NotFound";
+import Pausados from "./pages/Pausados";
+
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -117,6 +119,7 @@ const App = () => {
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/usuarios" element={<ProtectedRoute><Usuarios /></ProtectedRoute>} />
           <Route path="/cidades" element={<ProtectedRoute><GerenciarCidades /></ProtectedRoute>} />
+          <Route path="/pausados" element={<ProtectedRoute allowedForRH><Pausados /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
           </BrowserRouter>

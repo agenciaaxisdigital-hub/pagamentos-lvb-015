@@ -7,6 +7,7 @@ import { requestNotificationPermission } from "@/hooks/usePaymentNotifications";
 import { Download, WifiOff, X, RefreshCw, Bell, BellOff } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import SeletorCidade from "@/components/SeletorCidade";
+import LogoAxis from "./LogoAxis";
 
 const PULL_THRESHOLD = 65;
 
@@ -103,12 +104,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <header className="glass-card px-3 sm:px-4 py-3 shrink-0 z-40 mx-2 mt-2 rounded-2xl premium-shadow">
         <div className="max-w-2xl mx-auto flex flex-wrap items-center justify-between gap-2 sm:gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-2xl premium-gradient flex items-center justify-center shrink-0 shadow-lg rotate-3">
-              <span className="text-sm font-black text-white -rotate-3 tracking-tighter">FS</span>
-            </div>
+            <img
+              src="/logo-axis.png"
+              alt="Agência Axis"
+              className="w-[38px] h-[38px] object-contain shrink-0 animate-fade-in"
+            />
             <div className="min-w-0">
-              <h1 className="text-sm font-black text-foreground leading-none tracking-tight">Painel Político</h1>
-              <p className="text-[10px] text-primary font-bold uppercase tracking-widest mt-0.5">Dra. Fernanda Sarelli</p>
+              <h1 className="text-sm font-black text-foreground leading-none tracking-tight">Gestão Financeira</h1>
+              <p className="text-[10px] text-primary font-bold uppercase tracking-widest mt-1">Agência Axis</p>
             </div>
           </div>
 

@@ -59,7 +59,11 @@ export default function VersionMonitor() {
 
     window.addEventListener("online", checkForUpdates);
     document.addEventListener("visibilitychange", handleVisibility);
-    navigator.serviceWorker?.addEventListener("controllerchange", reloadWhenIdle);
+    
+    // Evita loop de recarga na primeira instalação do SW (somente escuta se já controlado)
+    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.addEventListener("controllerchange", reloadWhenIdle);
+    }
 
     // Verifica a cada 5 min
     const interval = setInterval(checkForUpdates, 5 * 60 * 1000);
@@ -68,7 +72,9 @@ export default function VersionMonitor() {
       window.removeEventListener("pagehide", clearApiCache);
       window.removeEventListener("online", checkForUpdates);
       document.removeEventListener("visibilitychange", handleVisibility);
-      navigator.serviceWorker?.removeEventListener("controllerchange", reloadWhenIdle);
+      if (navigator.serviceWorker) {
+        navigator.serviceWorker.removeEventListener("controllerchange", reloadWhenIdle);
+      }
       clearInterval(interval);
     };
   }, [checkForUpdates]);

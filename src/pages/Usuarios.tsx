@@ -12,7 +12,7 @@ import { PageTransition } from "@/components/PageTransition";
 import { cn } from "@/lib/utils";
 
 function usernameFromEmail(email: string) {
-  return email.replace("@painel.sarelli.com", "").replace("@sistema.local", "");
+  return email.replace("@agenciaaxis.com.br", "").replace("@sistema.local", "");
 }
 
 export default function Usuarios() {
@@ -128,7 +128,7 @@ export default function Usuarios() {
               className="bg-card shadow-sm border-border"
             />
             <p className="text-[11px] text-muted-foreground">
-              Login: <span className="font-medium text-foreground">{username.trim().toLowerCase().replace(/\s+/g, "") || "..."}</span>@painel.sarelli.com
+              Login: <span className="font-medium text-foreground">{username.trim().toLowerCase().replace(/\s+/g, "") || "..."}</span>@agenciaaxis.com.br
             </p>
           </div>
 

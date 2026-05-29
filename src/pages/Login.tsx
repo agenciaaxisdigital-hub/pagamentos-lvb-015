@@ -8,10 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, LogIn, Lock, User } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import NetworkBackground from "@/components/NetworkBackground";
-import LogoSarelli from "@/assets/Logo_Sarelli.png";
-import FotoDra from "@/assets/foto_dra.png";
+import LogoAxis from "@/components/LogoAxis";
 
-const EMAIL_DOMAIN = "@painel.sarelli.com";
+const EMAIL_DOMAIN = "@agenciaaxis.com.br";
 
 export default function Login() {
   const [username, setUsername] = useState(() => localStorage.getItem("saved_user") || "");
@@ -30,34 +29,45 @@ export default function Login() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    let email = username.includes("@")
-      ? username
-      : username.toLowerCase().replace(/\s+/g, "") + "@sistema.local";
-      
-    let { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    
-    if (error && !username.includes("@")) {
-      const emailLegacy = username.toLowerCase().replace(/\s+/g, "") + EMAIL_DOMAIN;
-      const legacyAttempt = await supabase.auth.signInWithPassword({ email: emailLegacy, password });
-      error = legacyAttempt.error;
-    }
-    setLoading(false);
-    if (error) {
-      toast({
-        title: "Erro no login",
-        description: "Usuário ou senha incorretos",
-        variant: "destructive",
-      });
-    } else {
-      if (remember) {
-        localStorage.setItem("saved_user", username);
-      } else {
-        localStorage.removeItem("saved_user");
+
+    const base = username.toLowerCase().replace(/\s+/g, "");
+    const candidates = username.includes("@")
+      ? [username]
+      : [
+          base + "@painel.sarelli.com",   // domínio original de produção
+          base + "@sistema.local",
+          base + "@agenciaaxis.com.br",
+          base + "@sarelli.com.br",
+        ];
+
+    let lastError: { message: string } | null = null;
+
+    for (const email of candidates) {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (!error) {
+        if (remember) {
+          localStorage.setItem("saved_user", username);
+        } else {
+          localStorage.removeItem("saved_user");
+        }
+        localStorage.removeItem("saved_pass");
+        setLoading(false);
+        navigate("/");
+        return;
       }
-      localStorage.removeItem("saved_pass");
-      navigate("/");
+      lastError = error;
     }
+
+    setLoading(false);
+    toast({
+      title: "Erro no login",
+      description: "Usuário ou senha incorretos",
+      variant: "destructive",
+    });
+    console.error("[Login] Falhou em todos os domínios:", lastError?.message);
   };
+
+
 
   const anim = (delay: number) => ({
     opacity: entered ? 1 : 0,
@@ -70,7 +80,7 @@ export default function Login() {
   return (
     <div
       className="min-h-[100dvh] flex flex-col items-center justify-start sm:justify-center p-4 pt-8 sm:py-6 relative overflow-y-auto"
-      style={{ background: 'linear-gradient(180deg, #fef2f2 0%, #fdf2f8 40%, #fefefe 100%)' }}
+      style={{ background: 'linear-gradient(180deg, #090e1a 0%, #0d1527 50%, #030712 100%)' }}
     >
       <NetworkBackground />
 
@@ -79,8 +89,8 @@ export default function Login() {
         className="absolute inset-0 z-[1] pointer-events-none"
         style={{
           background: `
-            radial-gradient(ellipse 100% 60% at 50% 0%, rgba(200, 170, 100, 0.07) 0%, transparent 60%),
-            radial-gradient(ellipse 80% 50% at 50% 100%, rgba(236, 72, 153, 0.05) 0%, transparent 50%)
+            radial-gradient(ellipse 100% 60% at 50% 0%, rgba(107, 114, 128, 0.12) 0%, transparent 60%),
+            radial-gradient(ellipse 80% 50% at 50% 100%, rgba(156, 163, 175, 0.08) 0%, transparent 50%)
           `,
           opacity: entered ? 1 : 0,
           transition: 'opacity 1s ease-out',
@@ -97,85 +107,67 @@ export default function Login() {
       >
         {/* Logo */}
         <div className="flex flex-col items-center">
-          {/* Foto circular */}
+          {/* Logo Axis */}
           <div
+            className="animate-float"
             style={{
-              opacity: entered ? 1 : 0,
-              transform: entered ? 'scale(1) translateY(0)' : 'scale(0.6) translateY(20px)',
-              transition: 'all 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s',
-            }}
-          >
-            <div
-              className="rounded-full overflow-hidden mx-auto w-[90px] h-[90px] sm:w-[110px] sm:h-[110px]"
-              style={{
-                border: '3px solid #ec4899',
-                boxShadow: '0 4px 25px rgba(236, 72, 153, 0.3)',
-              }}
-            >
-              <img
-                src={FotoDra}
-                alt="Dra. Fernanda Sarelli"
-                className="w-full h-full object-cover object-top"
-                style={{ objectPosition: '50% 15%' }}
-                loading="eager"
-              />
-            </div>
-          </div>
-
-          {/* Logo */}
-          <div
-            className="-mt-6"
-            style={{
+              width: 136,
+              height: 136,
+              borderRadius: '50%',
+              background: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 12,
+              overflow: 'hidden',
+              boxShadow: '0 12px 40px rgba(0,0,0,0.55), 0 0 0 3px rgba(255,255,255,0.18), 0 0 0 6px rgba(59,130,246,0.15)',
               opacity: entered ? 1 : 0,
               transform: entered ? 'scale(1) translateY(0)' : 'scale(0.8) translateY(10px)',
               transition: 'all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s',
             }}
           >
             <img
-              src={LogoSarelli}
-              alt="Sarelli"
-              className="mx-auto h-36 sm:h-44 w-auto object-contain drop-shadow-sm"
-              loading="eager"
+              src="/logo-axis.png"
+              alt="Agência Axis"
+              style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
             />
           </div>
 
           {/* Subtítulo */}
-          <div className="-mt-4" style={anim(0.3)}>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em]"
-              style={{ color: '#c8aa64' }}
+          <div className="mt-4 text-center" style={anim(0.3)}>
+            <h2 className="text-lg font-black tracking-tight text-white leading-none">Gestão Financeira</h2>
+            <p className="text-xs font-bold uppercase tracking-[0.25em] mt-1.5"
+              style={{ color: '#9ca3af' }}
             >
-              Painel de Pagamentos
+              Agência Axis
             </p>
           </div>
         </div>
 
-        {/* Login form — glassmorphism with animated pink border */}
+        {/* Login form — glassmorphism with animated tech blue border */}
         <form
           onSubmit={handleLogin}
-          className="space-y-4 p-5 sm:p-7 rounded-[20px] relative overflow-hidden animate-[borderPulse_4s_ease-in-out_infinite]"
+          className="space-y-4 p-5 sm:p-7 rounded-[24px] relative overflow-hidden animate-[borderPulse_4s_ease-in-out_infinite]"
           style={{
-            background: 'linear-gradient(160deg, rgba(255,255,255,0.38) 0%, rgba(255,240,245,0.18) 50%, rgba(255,255,255,0.08) 100%)',
+            background: 'linear-gradient(160deg, rgba(15, 23, 42, 0.8) 0%, rgba(30, 41, 59, 0.45) 50%, rgba(15, 23, 42, 0.75) 100%)',
             backdropFilter: 'blur(20px) saturate(1.5)',
             WebkitBackdropFilter: 'blur(20px) saturate(1.5)',
-            border: '2px solid rgba(236, 150, 170, 0.5)',
-            borderRadius: '20px',
+            border: '1px solid rgba(107, 114, 128, 0.3)',
+            borderRadius: '24px',
             boxShadow: `
-              0 8px 40px rgba(236, 72, 153, 0.08),
-              0 2px 12px rgba(0, 0, 0, 0.04),
-              inset 0 1px 0 rgba(255, 255, 255, 0.5),
-              0 0 20px rgba(236, 150, 170, 0.15)
+              0 20px 50px rgba(0, 0, 0, 0.35),
+              0 0 30px rgba(107, 114, 128, 0.15),
+              inset 0 1px 0 rgba(255, 255, 255, 0.05)
             `,
             ...anim(0.3),
           }}
         >
           <div className="space-y-1.5" style={anim(0.35)}>
-            <Label className="text-[11px] uppercase tracking-widest font-bold"
-              style={{ color: '#555' }}
-            >
+            <Label className="text-[11px] uppercase tracking-widest font-bold text-slate-400">
               Usuário
             </Label>
             <div className="relative">
-              <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#c8aa64' }} />
+              <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#9ca3af' }} />
               <Input
                 type="text"
                 placeholder="Ex: Administrador"
@@ -183,23 +175,21 @@ export default function Login() {
                 onChange={(e) => setUsername(e.target.value)}
                 required
                 style={{
-                  background: 'rgba(255,255,255,0.55)',
-                  borderColor: 'rgba(200,170,100,0.3)',
-                  color: '#333',
+                  background: 'rgba(15, 23, 42, 0.6)',
+                  borderColor: 'rgba(107, 114, 128, 0.25)',
+                  color: '#f8fafc',
                 }}
-                className="placeholder:text-gray-400 focus:border-pink-400 focus:ring-pink-200 h-12 pl-10 text-sm rounded-xl"
+                className="placeholder:text-slate-500 focus:border-slate-500 focus:ring-slate-500/20 h-12 pl-10 text-sm rounded-xl border"
               />
             </div>
           </div>
 
           <div className="space-y-1.5" style={anim(0.4)}>
-            <Label className="text-[11px] uppercase tracking-widest font-bold"
-              style={{ color: '#555' }}
-            >
+            <Label className="text-[11px] uppercase tracking-widest font-bold text-slate-400">
               Senha
             </Label>
             <div className="relative">
-              <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#c8aa64' }} />
+              <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#9ca3af' }} />
               <Input
                 type={showPassword ? "text" : "password"}
                 placeholder="••••••••"
@@ -207,17 +197,17 @@ export default function Login() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 style={{
-                  background: 'rgba(255,255,255,0.55)',
-                  borderColor: 'rgba(200,170,100,0.3)',
-                  color: '#333',
+                  background: 'rgba(15, 23, 42, 0.6)',
+                  borderColor: 'rgba(107, 114, 128, 0.25)',
+                  color: '#f8fafc',
                 }}
-                className="placeholder:text-gray-400 focus:border-pink-400 focus:ring-pink-200 h-12 pl-10 pr-10 text-sm rounded-xl"
+                className="placeholder:text-slate-500 focus:border-slate-500 focus:ring-slate-500/20 h-12 pl-10 pr-10 text-sm rounded-xl border"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors"
-                style={{ color: '#c8aa64' }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors hover:text-white"
+                style={{ color: '#9ca3af' }}
                 tabIndex={-1}
               >
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -230,9 +220,9 @@ export default function Login() {
               id="remember"
               checked={remember}
               onCheckedChange={(v) => setRemember(!!v)}
-              className="border-gray-300 data-[state=checked]:bg-pink-500 data-[state=checked]:border-pink-500"
+              className="border-slate-600 data-[state=checked]:bg-slate-600 data-[state=checked]:border-slate-600"
             />
-            <label htmlFor="remember" className="text-xs cursor-pointer select-none" style={{ color: '#777' }}>
+            <label htmlFor="remember" className="text-xs cursor-pointer select-none text-slate-400 hover:text-slate-300">
               Lembrar meus dados
             </label>
           </div>
@@ -243,8 +233,8 @@ export default function Login() {
               disabled={loading}
               className="w-full font-semibold h-12 text-sm text-white transition-all active:scale-[0.97] hover:brightness-110 rounded-xl"
               style={{
-                background: 'linear-gradient(135deg, #ec4899 0%, #d4a054 100%)',
-                boxShadow: '0 4px 20px rgba(236, 72, 153, 0.3), 0 2px 8px rgba(200, 170, 100, 0.2)',
+                background: 'linear-gradient(135deg, #3A3D42 0%, #6B7280 100%)',
+                boxShadow: '0 4px 20px rgba(107, 114, 128, 0.3), 0 2px 8px rgba(156, 163, 175, 0.15)',
               }}
             >
               {loading ? (
@@ -263,17 +253,17 @@ export default function Login() {
         </form>
 
         <div className="text-center space-y-1" style={anim(0.6)}>
-          <p className="text-[10px]" style={{ color: '#bbb' }}>
-            Pré-candidata a Deputada Estadual — GO 2026
+          <p className="text-[10px] text-slate-500 font-medium">
+            Agência Axis — Tecnologia e Gestão Financeira
           </p>
           <a
-            href="https://drafernandasarelli.com.br"
+            href="https://agenciaaxis.com.br"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[10px] transition-colors"
-            style={{ color: '#ec4899' }}
+            className="text-[10px] transition-colors font-bold hover:underline"
+            style={{ color: '#9ca3af' }}
           >
-            drafernandasarelli.com.br
+            agenciaaxis.com.br
           </a>
         </div>
       </div>

@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { saveLocalVencimento, saveLocalSuplenteVinculado } from "@/lib/pausadosFallback";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,7 @@ interface FormData {
   vinculado_id: string;
   tem_candidato_deputado: string;
   nome_candidato_deputado: string;
+  dia_vencimento: number;
 }
 
 // Meses restantes até outubro (MES_FIM = 10), mínimo 1
@@ -71,6 +73,7 @@ const defaultForm: FormData = {
   vinculado_id: "",
   tem_candidato_deputado: "",
   nome_candidato_deputado: "",
+  dia_vencimento: 10,
 };
 
 interface Props {
@@ -108,6 +111,7 @@ function buildFormState(initial?: Props["initial"]): FormData {
     vinculado_id: (initial as any)?.vinculado_id ?? defaultForm.vinculado_id,
     tem_candidato_deputado: (initial as any)?.tem_candidato_deputado ?? defaultForm.tem_candidato_deputado,
     nome_candidato_deputado: (initial as any)?.nome_candidato_deputado ?? defaultForm.nome_candidato_deputado,
+    dia_vencimento: Number(initial?.dia_vencimento ?? defaultForm.dia_vencimento),
   };
 }
 
@@ -197,15 +201,39 @@ export default function Cadastro({ initial, onSaved }: Props) {
         }
       }
 
-      const { nome_urna, municipio_id, vinculado_id, ...rest } = form;
-      const payload: any = { ...rest, numero_urna: nome_urna || rest.numero_urna || "", total_campanha: totalCampanha };
+      // Removendo colunas que não pertencem ao schema do banco remoto compartilhado
+      const { 
+        nome_urna, 
+        municipio_id, 
+        vinculado_id, 
+        dia_vencimento,
+        tem_candidato_deputado,
+        nome_candidato_deputado,
+        ...rest 
+      } = form;
+
+      const payload: any = { 
+        ...rest, 
+        numero_urna: nome_urna || rest.numero_urna || "", 
+        total_campanha: totalCampanha 
+      };
+      
       payload.municipio_id = municipio_id || cidadeAtiva || null;
 
       let error;
       if (initial?.id) {
         ({ error } = await supabase.from("suplentes").update(payload).eq("id", initial.id));
+        if (!error) {
+          saveLocalVencimento(initial.id, form.dia_vencimento);
+          saveLocalSuplenteVinculado(initial.id, form.vinculado_id);
+        }
       } else {
-        ({ error } = await supabase.from("suplentes").insert(payload));
+        const { data, error: insertErr } = await supabase.from("suplentes").insert(payload).select("id").maybeSingle();
+        error = insertErr;
+        if (!error && data?.id) {
+          saveLocalVencimento(data.id, form.dia_vencimento);
+          saveLocalSuplenteVinculado(data.id, form.vinculado_id);
+        }
       }
 
       if (error) {
@@ -385,6 +413,23 @@ export default function Cadastro({ initial, onSaved }: Props) {
         </h2>
 
         <CalcRow label="Retirada Mensal" val1={form.retirada_mensal_valor} label1="Valor (R$)" val2={form.retirada_mensal_meses} label2="Meses" onChange1={(v) => setNum("retirada_mensal_valor", v)} onChange2={(v) => setNum("retirada_mensal_meses", v)} total={retiradaTotal} />
+        {form.retirada_mensal_valor > 0 && (
+          <div className="bg-primary/5 border border-primary/10 rounded-xl p-3 flex items-center justify-between gap-3 animate-in fade-in slide-in-from-top-1">
+            <div>
+              <p className="text-xs font-bold text-foreground">Dia de Vencimento da Retirada</p>
+              <p className="text-[10px] text-muted-foreground">Dia do mês para lembrar do pagamento</p>
+            </div>
+            <div className="w-24">
+              <Input
+                type="number" inputMode="numeric" min="1" max="31"
+                value={form.dia_vencimento || ""}
+                onChange={(e) => setNum("dia_vencimento", Math.min(31, Math.max(1, parseInt(e.target.value) || 10)))}
+                placeholder="10"
+                className="bg-card shadow-sm border-border h-9 font-bold text-center"
+              />
+            </div>
+          </div>
+        )}
         <CalcRow label="Plotagem" val1={form.plotagem_qtd} label1="Qtd" val2={form.plotagem_valor_unit} label2="Valor Unit. (R$)" onChange1={(v) => setNum("plotagem_qtd", v)} onChange2={(v) => setNum("plotagem_valor_unit", v)} total={plotagemTotal} />
         <CalcRow label="Lideranças na Campanha" val1={form.liderancas_qtd} label1="Qtd" val2={form.liderancas_valor_unit} label2="Valor Unit. (R$)" onChange1={(v) => setNum("liderancas_qtd", v)} onChange2={(v) => setNum("liderancas_valor_unit", v)} total={liderancasTotal} />
         <CalcRow label="Fiscais no Dia da Eleição" val1={form.fiscais_qtd} label1="Qtd" val2={form.fiscais_valor_unit} label2="Valor Unit. (R$)" onChange1={(v) => setNum("fiscais_qtd", v)} onChange2={(v) => setNum("fiscais_valor_unit", v)} total={fiscaisTotal} />
@@ -394,33 +439,13 @@ export default function Cadastro({ initial, onSaved }: Props) {
             <span>Total Pessoas de Campo</span>
             <span className="font-semibold text-foreground">{totalPessoas}</span>
           </div>
-          <div className="flex justify-between items-center bg-gradient-to-r from-pink-500/10 to-rose-400/10 rounded-xl p-3">
+          <div className="flex justify-between items-center bg-gradient-to-r from-slate-500/10 to-slate-400/10 rounded-xl p-3">
             <span className="text-base font-bold text-foreground">TOTAL CAMPANHA</span>
             <span className="text-xl font-bold text-primary">{fmt(totalCampanha)}</span>
           </div>
         </div>
       </section>
 
-      {/* Apoio Político */}
-      <section className="bg-card rounded-2xl border border-border p-4 space-y-3 shadow-sm">
-        <h2 className="text-sm font-semibold text-primary uppercase tracking-wider">Apoio Político</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <Field label="Já tem candidato para Deputado Estadual?">
-            <Select value={form.tem_candidato_deputado} onValueChange={(v) => set("tem_candidato_deputado", v)}>
-              <SelectTrigger className="bg-card shadow-sm border-border h-11"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Sim">Sim</SelectItem>
-                <SelectItem value="Não">Não</SelectItem>
-              </SelectContent>
-            </Select>
-          </Field>
-          {form.tem_candidato_deputado === "Sim" && (
-            <Field label="Quem é o candidato?">
-              <Input value={form.nome_candidato_deputado} onChange={(e) => set("nome_candidato_deputado", e.target.value)} placeholder="Nome do Deputado" className="bg-card shadow-sm border-border h-11" />
-            </Field>
-          )}
-        </div>
-      </section>
 
       {/* Assinatura */}
       <section className="bg-card rounded-2xl border border-border p-4 space-y-3 shadow-sm">
@@ -454,7 +479,7 @@ export default function Cadastro({ initial, onSaved }: Props) {
       <Button
         onClick={handleSave}
         disabled={saving}
-        className="w-full bg-gradient-to-r from-pink-500 to-rose-400 hover:opacity-90 text-white font-semibold h-12 text-base shadow-lg active:scale-[0.98] transition-transform touch-manipulation"
+        className="w-full bg-gradient-to-r from-slate-700 to-slate-500 hover:opacity-90 text-white font-semibold h-12 text-base shadow-lg active:scale-[0.98] transition-transform touch-manipulation"
       >
         {saving ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
         {saving ? "Salvando..." : initial?.id ? "Atualizar Ficha" : "Salvar Ficha"}

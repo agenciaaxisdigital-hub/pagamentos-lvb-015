@@ -1,5 +1,5 @@
 /**
- * Observabilidade e logging estruturado para o Sarelli PWA.
+ * Observabilidade e logging estruturado para o Axis PWA.
  * Centraliza logs de eventos críticos com timestamps e contexto.
  */
 
@@ -91,9 +91,9 @@ function pushBuffer(entry: LogEntry) {
   if (LOG_BUFFER.length > MAX_BUFFER) LOG_BUFFER.shift();
 }
 
-// Exporta para acesso global no console: window.__sarelliLogs
+// Exporta para acesso global no console: window.__axisLogs
 if (typeof window !== 'undefined') {
-  (window as any).__sarelliLogs = () => logger.getRecent(50);
+  (window as any).__axisLogs = () => logger.getRecent(50);
   // Reporta vitals após load
   window.addEventListener('load', () => {
     setTimeout(() => logger.reportWebVitals(), 2000);

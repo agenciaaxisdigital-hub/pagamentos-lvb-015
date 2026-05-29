@@ -12,11 +12,11 @@ interface Particle {
   color: [number, number, number];
 }
 
-const PINK: [number, number, number] = [236, 72, 153];
-const GOLD: [number, number, number] = [200, 170, 100];
-const ROSE: [number, number, number] = [244, 114, 182];
+const SLATE: [number, number, number] = [71, 85, 105];
+const ZINC: [number, number, number] = [113, 113, 122];
+const GRAY: [number, number, number] = [156, 163, 175];
 
-const PALETTE = [PINK, GOLD, ROSE, PINK, GOLD];
+const PALETTE = [SLATE, ZINC, GRAY, SLATE, ZINC];
 
 export default function NetworkBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -68,22 +68,22 @@ export default function NetworkBackground() {
       const cy3 = Math.cos(time * 0.002 + 1) * canvas.height * 0.3 + canvas.height * 0.2;
 
       const g1 = ctx.createRadialGradient(cx1, cy1, 0, cx1, cy1, canvas.width * 0.45);
-      g1.addColorStop(0, "rgba(236, 72, 153, 0.12)");
-      g1.addColorStop(0.5, "rgba(244, 114, 182, 0.05)");
+      g1.addColorStop(0, "rgba(71, 85, 105, 0.12)");
+      g1.addColorStop(0.5, "rgba(113, 113, 122, 0.05)");
       g1.addColorStop(1, "transparent");
       ctx.fillStyle = g1;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       const g2 = ctx.createRadialGradient(cx2, cy2, 0, cx2, cy2, canvas.width * 0.4);
-      g2.addColorStop(0, "rgba(200, 170, 100, 0.1)");
-      g2.addColorStop(0.5, "rgba(200, 170, 100, 0.04)");
+      g2.addColorStop(0, "rgba(156, 163, 175, 0.10)");
+      g2.addColorStop(0.5, "rgba(71, 85, 105, 0.04)");
       g2.addColorStop(1, "transparent");
       ctx.fillStyle = g2;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       const g3 = ctx.createRadialGradient(cx3, cy3, 0, cx3, cy3, canvas.width * 0.35);
-      g3.addColorStop(0, "rgba(244, 114, 182, 0.08)");
-      g3.addColorStop(0.6, "rgba(236, 72, 153, 0.03)");
+      g3.addColorStop(0, "rgba(113, 113, 122, 0.08)");
+      g3.addColorStop(0.6, "rgba(71, 85, 105, 0.03)");
       g3.addColorStop(1, "transparent");
       ctx.fillStyle = g3;
       ctx.fillRect(0, 0, canvas.width, canvas.height);

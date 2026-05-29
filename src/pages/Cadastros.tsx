@@ -1,11 +1,10 @@
 import { useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { useDeleteWithUndo } from "@/hooks/useDeleteWithUndo";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, ChevronRight, MapPin, ArrowLeft, Trash2, FileDown, Plus } from "lucide-react";
+import { Search, ChevronRight, MapPin, ArrowLeft, FileDown, Plus, Pause } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import Cadastro from "./Cadastro";
@@ -16,12 +15,13 @@ import { validateRequiredData } from "@/lib/validateRequiredData";
 import { PageTransition } from "@/components/PageTransition";
 import { CardSkeletonList } from "@/components/CardSkeleton";
 import { useCidade } from "@/contexts/CidadeContext";
+import { mergePausados, pauseCollaborator, reactivateCollaborator } from "@/lib/pausadosFallback";
 
 export default function Cadastros() {
   const navigate = useNavigate();
-  const { deleteWithUndo } = useDeleteWithUndo();
   const [search, setSearch] = usePersistedState("busca-suplentes", "");
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [verPausados, setVerPausados] = useState(false);
   const { cidadeAtiva } = useCidade();
 
   const { data: suplentes, refetch, isLoading } = useQuery({
@@ -41,15 +41,20 @@ export default function Cadastros() {
   const normalizeStr = (str: string) =>
     (str || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
+  const mergedSuplentes = useMemo(() => mergePausados(suplentes, "suplente"), [suplentes]);
+  const suplentesAtivos = useMemo(() => (mergedSuplentes || []).filter((s: any) => !s.pausado), [mergedSuplentes]);
+  const suplentesPausados = useMemo(() => (mergedSuplentes || []).filter((s: any) => s.pausado), [mergedSuplentes]);
+
   const filtered = useMemo(() => {
-    if (!suplentes) return [];
-    if (!search.trim()) return suplentes;
+    const baseList = verPausados ? suplentesPausados : suplentesAtivos;
+    if (!baseList) return [];
+    if (!search.trim()) return baseList;
     const term = normalizeStr(search);
-    return suplentes.filter((s: any) => {
+    return baseList.filter((s: any) => {
       const fields = [s.nome, s.bairro, s.regiao_atuacao, s.numero_urna, s.partido, s.base_politica, s.situacao];
       return fields.some(f => f && normalizeStr(f).includes(term));
     });
-  }, [suplentes, search]);
+  }, [suplentesAtivos, suplentesPausados, search, verPausados]);
 
   const fmt = (v: number) => (v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -61,16 +66,32 @@ export default function Cadastros() {
 
   const editing = useMemo(() => editingId ? suplentes?.find((s: any) => s.id === editingId) : null, [suplentes, editingId]);
 
-  const handleDelete = (id: string, nome: string) => {
-    deleteWithUndo({
-      queryKey: ["suplentes"],
-      itemId: id,
-      deleteFn: async () => supabase.from("suplentes").delete().eq("id", id),
-      label: nome,
-    });
+  const handlePause = async (id: string, nome: string, pausar: boolean) => {
+    if (pausar) {
+      const confirm = window.confirm(`Deseja pausar ${nome}? Ele não aparecerá mais nos pagamentos ativos nem somará nas previsões do dashboard.`);
+      if (!confirm) return;
+      
+      const { success, error } = await pauseCollaborator(id, "suplente");
+      if (!success) {
+        toast({ title: "Erro ao pausar", description: error?.message || "Erro desconhecido", variant: "destructive" });
+        return;
+      }
+      toast({ title: `${nome} pausado com sucesso!`, description: "Ele foi movido para a aba de Pausados." });
+      navigate("/pausados");
+    } else {
+      const confirm = window.confirm(`Deseja reativar ${nome}? Ele voltará a aparecer nos pagamentos e somar no dashboard.`);
+      if (!confirm) return;
+
+      const { success, error } = await reactivateCollaborator(id, "suplente", { pausado: false });
+      if (!success) {
+        toast({ title: "Erro ao reativar", description: error?.message || "Erro desconhecido", variant: "destructive" });
+        return;
+      }
+      toast({ title: `${nome} reativado com sucesso!` });
+    }
+    refetch();
   };
 
-  // Funções de validação agora são manuais (removidas do useEffect)
   const runAutoValidateTotals = async () => {
     toast({ title: "Validando totais...", description: "Por favor aguarde." });
     try {
@@ -136,7 +157,7 @@ export default function Cadastros() {
             <Button
               size="sm"
               onClick={() => navigate("/cadastros/novo")}
-              className="text-xs gap-1.5 bg-gradient-to-r from-pink-500 to-rose-400 text-white font-bold active:scale-95 transition-transform"
+              className="text-xs gap-1.5 bg-gradient-to-r from-slate-700 to-slate-500 text-white font-bold active:scale-95 transition-transform"
             >
               <Plus size={14} />
               Novo
@@ -170,6 +191,22 @@ export default function Cadastros() {
           </div>
         </div>
 
+        {/* Ativos / Pausados Tabs */}
+        <div className="flex gap-2 border-b border-border/50 pb-1.5">
+          <button
+            onClick={() => setVerPausados(false)}
+            className={`pb-1.5 px-3 text-xs font-bold transition-all relative ${!verPausados ? "text-primary border-b-2 border-primary" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            Ativos ({suplentesAtivos.length})
+          </button>
+          <button
+            onClick={() => setVerPausados(true)}
+            className={`pb-1.5 px-3 text-xs font-bold transition-all relative ${verPausados ? "text-primary border-b-2 border-primary" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            Pausados / Retirados ({suplentesPausados.length})
+          </button>
+        </div>
+
         {isLoading ? (
           <CardSkeletonList count={4} />
         ) : (
@@ -194,7 +231,6 @@ export default function Cadastros() {
                     className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden animate-fade-in"
                     style={{ animationDelay: `${Math.min(index * 50, 300)}ms`, animationFillMode: "both" }}
                   >
-                    {/* Header */}
                     <button
                       onClick={() => setEditingId(s.id)}
                       className="w-full text-left p-3 pb-2 active:bg-muted/50 transition-colors"
@@ -227,7 +263,6 @@ export default function Cadastros() {
                       </div>
                     </button>
 
-                    {/* Row 1: Votos / Expectativa / Pessoas */}
                     <div className="grid grid-cols-3 border-t border-border divide-x divide-border bg-muted/40">
                       <div className="py-2 px-1 text-center">
                         <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-medium">Votos</p>
@@ -243,7 +278,6 @@ export default function Cadastros() {
                       </div>
                     </div>
 
-                    {/* Row 2: Lideranças / Fiscais / Plotagem / Retirada */}
                     <div className="grid grid-cols-2 sm:grid-cols-4 border-t border-border sm:divide-x divide-border bg-muted/40">
                       <div className="py-2 px-1 text-center">
                         <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-medium">Líder.</p>
@@ -267,19 +301,31 @@ export default function Cadastros() {
                       </div>
                     </div>
 
-                    {/* Actions */}
                     <div className="flex items-center justify-end px-3 py-1.5 border-t border-border gap-0.5">
                       <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:text-primary active:scale-95" onClick={() => exportSuplentePDF(s)}>
                         <FileDown size={14} />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive hover:text-destructive active:scale-95"
-                        onClick={() => handleDelete(s.id, s.nome)}
-                      >
-                        <Trash2 size={14} />
-                      </Button>
+                      {!verPausados ? (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-amber-500 hover:text-amber-600 hover:bg-amber-500/10 active:scale-95 animate-fade-in"
+                          onClick={() => handlePause(s.id, s.nome, true)}
+                          title="Pausar suplente"
+                        >
+                          <Pause size={14} />
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 px-2 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10 font-black text-[10px] active:scale-95 gap-1 animate-fade-in rounded-lg"
+                          onClick={() => handlePause(s.id, s.nome, false)}
+                          title="Reativar suplente"
+                        >
+                          <Plus size={12} /> Reativar
+                        </Button>
+                      )}
                       <ChevronRight size={16} className="text-muted-foreground cursor-pointer" onClick={() => setEditingId(s.id)} />
                     </div>
                   </div>

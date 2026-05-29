@@ -41,13 +41,21 @@ export function HistoricoItem({ p, onDelete }: HistoricoItemProps) {
   const [editing, setEditing] = useState(false);
   const [valor, setValor] = useState(String(p.valor));
   const [obs, setObs] = useState(p.observacao || "");
+  const [dataPagamento, setDataPagamento] = useState(() => {
+    return p.created_at ? p.created_at.substring(0, 10) : "";
+  });
   const [saving, setSaving] = useState(false);
 
   const save = async () => {
     const v = parseFloat(valor.replace(",", "."));
     if (!v) return;
     setSaving(true);
-    const { error } = await supabase.from("pagamentos").update({ valor: v, observacao: obs || null }).eq("id", p.id);
+    const createdAtVal = dataPagamento ? new Date(dataPagamento + "T12:00:00").toISOString() : p.created_at;
+    const { error } = await supabase.from("pagamentos").update({ 
+      valor: v, 
+      observacao: obs || null,
+      created_at: createdAtVal
+    }).eq("id", p.id);
     setSaving(false);
     if (error) {
       toast({ title: "Erro ao atualizar", description: error.message, variant: "destructive" });
@@ -55,21 +63,35 @@ export function HistoricoItem({ p, onDelete }: HistoricoItemProps) {
     }
     toast({ title: "Atualizado!" });
     qc.setQueriesData<Pagamento[]>({ queryKey: ["pagamentos"] }, (old) =>
-      Array.isArray(old) ? old.map(item => item.id === p.id ? { ...item, valor: v, observacao: obs || null } : item) : (old ?? [])
+      Array.isArray(old) ? old.map(item => item.id === p.id ? { ...item, valor: v, observacao: obs || null, created_at: createdAtVal } : item) : (old ?? [])
     );
     setEditing(false);
     qc.invalidateQueries({ queryKey: ["pagamentos"] });
   };
 
   if (editing) return (
-    <div className="px-3 py-2 space-y-1.5 bg-muted/20">
-      <div className="flex gap-1.5">
-        <Input type="number" value={valor} onChange={e => setValor(e.target.value)} className="h-7 text-xs flex-1 bg-card" />
-        <Input value={obs} onChange={e => setObs(e.target.value)} className="h-7 text-xs flex-1 bg-card" placeholder="Obs" />
-        <Button size="sm" className="h-7 px-2 text-[10px] bg-primary" onClick={save} disabled={saving}>
-          {saving ? <Loader2 size={10} className="animate-spin" /> : "✓"}
+    <div className="px-3 py-2.5 space-y-2 bg-muted/25 border-y border-border/30">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <div>
+          <p className="text-[9px] text-muted-foreground uppercase font-bold mb-0.5">Valor (R$)</p>
+          <Input type="number" value={valor} onChange={e => setValor(e.target.value)} className="h-8 text-xs bg-card font-bold" />
+        </div>
+        <div>
+          <p className="text-[9px] text-muted-foreground uppercase font-bold mb-0.5">Data do Pagamento</p>
+          <Input type="date" value={dataPagamento} onChange={e => setDataPagamento(e.target.value)} className="h-8 text-[11px] bg-card" />
+        </div>
+        <div>
+          <p className="text-[9px] text-muted-foreground uppercase font-bold mb-0.5">Observação</p>
+          <Input value={obs} onChange={e => setObs(e.target.value)} className="h-8 text-xs bg-card" placeholder="Opcional" />
+        </div>
+      </div>
+      <div className="flex gap-1.5 pt-1">
+        <Button size="sm" className="h-7 text-[10px] flex-1 bg-gradient-to-r from-slate-700 to-slate-500 text-white font-bold" onClick={save} disabled={saving}>
+          {saving ? <Loader2 size={10} className="animate-spin mr-1" /> : "Salvar Alterações"}
         </Button>
-        <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => setEditing(false)}>✕</Button>
+        <Button size="sm" variant="ghost" className="h-7 text-[10px] px-3 border border-border" onClick={() => setEditing(false)}>
+          Cancelar
+        </Button>
       </div>
     </div>
   );

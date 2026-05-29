@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { saveLocalVencimento, saveLocalLiderancaSuplente, saveLocalLiderancaVinculada } from "@/lib/pausadosFallback";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,6 +46,7 @@ interface FormData {
   suplente_id: string | null;
   lideranca_vinculada_id: string | null;
   municipio_id: string | null;
+  dia_vencimento: number;
 }
 
 const defaultForm: FormData = {
@@ -62,6 +64,7 @@ const defaultForm: FormData = {
   suplente_id: null,
   lideranca_vinculada_id: null,
   municipio_id: null,
+  dia_vencimento: 10,
 };
 
 const fmt = (v: number) => (v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -129,6 +132,7 @@ export default function CadastroLideranca() {
       suplente_id: existing.suplente_id || null,
       lideranca_vinculada_id: existing.lideranca_vinculada_id || null,
       municipio_id: existing.municipio_id || null,
+      dia_vencimento: existing.dia_vencimento || 10,
     });
     setSelectedMunicipio(existing.municipio_id || cidadeAtiva || "");
     setInitialized(true);
@@ -158,18 +162,22 @@ export default function CadastroLideranca() {
         chave_pix: form.chave_pix?.trim() || null,
         assinatura: form.assinatura || null,
         municipio_id: selectedMunicipio || cidadeAtiva || null,
-        suplente_id: form.suplente_id || null,
-        lideranca_vinculada_id: form.lideranca_vinculada_id || null,
         updated_at: new Date().toISOString(),
       };
 
       if (id) payload.id = id;
 
-      const { error } = await supabase.from("liderancas").upsert(payload);
+      const { data, error } = await supabase.from("liderancas").upsert(payload).select("id").maybeSingle();
 
       if (error) {
         toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
       } else {
+        const lidId = id || data?.id;
+        if (lidId) {
+          saveLocalVencimento(lidId, form.dia_vencimento);
+          saveLocalLiderancaSuplente(lidId, form.suplente_id);
+          saveLocalLiderancaVinculada(lidId, form.lideranca_vinculada_id);
+        }
         toast({ title: id ? "Dados atualizados!" : "Cadastrado com sucesso!" });
         if (id) {
           qc.setQueriesData<any[]>({ queryKey: ["liderancas"] }, (old) =>
@@ -177,7 +185,7 @@ export default function CadastroLideranca() {
           );
         } else {
           qc.setQueriesData<any[]>({ queryKey: ["liderancas"] }, (old) =>
-            Array.isArray(old) ? [...old, { id: `opt-${Date.now()}`, ...payload }].sort((a, b) => (a.nome || "").localeCompare(b.nome || "")) : (old ?? [])
+            Array.isArray(old) ? [...old, { id: lidId || `opt-${Date.now()}`, ...payload }].sort((a, b) => (a.nome || "").localeCompare(b.nome || "")) : (old ?? [])
           );
         }
         qc.invalidateQueries();
@@ -377,7 +385,7 @@ export default function CadastroLideranca() {
             </Field>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <Field label="Mês de Início">
               <Select 
                 value={String(Math.max(1, form.retirada_ate_mes - form.retirada_mensal_meses + 1))} 
@@ -413,6 +421,16 @@ export default function CadastroLideranca() {
                   ))}
                 </SelectContent>
               </Select>
+            </Field>
+
+            <Field label="Dia de Vencimento">
+              <Input
+                type="number" inputMode="numeric" min="1" max="31"
+                value={form.dia_vencimento || ""}
+                onChange={(e) => set("dia_vencimento", Math.min(31, Math.max(1, parseInt(e.target.value) || 10)))}
+                placeholder="10"
+                className="bg-card shadow-sm border-border h-12 font-bold text-sm"
+              />
             </Field>
           </div>
 
@@ -486,7 +504,7 @@ export default function CadastroLideranca() {
         <Button
           onClick={handleSave}
           disabled={saving}
-          className="w-full bg-gradient-to-r from-pink-500 to-rose-400 hover:opacity-95 text-white font-bold h-14 text-lg shadow-xl active:scale-[0.98] transition-all rounded-2xl touch-manipulation"
+          className="w-full bg-gradient-to-r from-slate-700 to-slate-500 hover:opacity-95 text-white font-bold h-14 text-lg shadow-xl active:scale-[0.98] transition-all rounded-2xl touch-manipulation"
         >
           {saving ? <Loader2 size={24} className="animate-spin" /> : <Save size={24} className="mr-2" />}
           {saving ? "Salvando..." : id ? "Atualizar Dados" : "Finalizar Cadastro"}
