@@ -164,7 +164,7 @@ export function PessoaPayCard({ tipo, id, nome, subtitulo, valorEsperado, pagsMe
                 <div className="flex items-center gap-1 bg-sky-500/10 border border-sky-500/20 px-1.5 py-0.5 rounded-md">
                   <Users size={10} className="text-sky-400/60" />
                   <span className="text-[9px] text-sky-400 font-medium truncate max-w-[120px]">
-                    Suplente: {nomesMap[suplente_id]}
+                    Suplente: {nomesMap?.[suplente_id]}
                   </span>
                 </div>
               )}
@@ -173,7 +173,7 @@ export function PessoaPayCard({ tipo, id, nome, subtitulo, valorEsperado, pagsMe
                 <div className="flex items-center gap-1 bg-violet-500/10 border border-violet-500/20 px-1.5 py-0.5 rounded-md">
                   <Users size={10} className="text-violet-500/60" />
                   <span className="text-[9px] text-violet-500 font-medium truncate max-w-[120px]">
-                    Vínculo: {nomesMap[lideranca_vinculada_id]}
+                    Vínculo: {nomesMap?.[lideranca_vinculada_id]}
                   </span>
                 </div>
               )}
@@ -202,7 +202,16 @@ export function PessoaPayCard({ tipo, id, nome, subtitulo, valorEsperado, pagsMe
             </div>
           </div>
         )}
-        {createdAt && <p className="text-[10px] text-muted-foreground mt-1">Cadastro: {new Date(createdAt).toLocaleDateString("pt-BR")}</p>}
+        {(() => {
+          if (!createdAt) return null;
+          try {
+            const d = new Date(createdAt);
+            if (!isNaN(d.getTime())) {
+              return <p className="text-[10px] text-muted-foreground mt-1">Cadastro: {d.toLocaleDateString("pt-BR")}</p>;
+            }
+          } catch (e) {}
+          return null;
+        })()}
       </div>
 
       <div className="flex border-t border-border/30 divide-x divide-border/30">

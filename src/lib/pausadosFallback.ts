@@ -19,10 +19,15 @@ function getLocalData(): LocalPausadosData {
     const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (stored) {
       const parsed = JSON.parse(stored);
-      if (!parsed.paused_months) {
-        parsed.paused_months = {};
+      if (parsed && typeof parsed === "object") {
+        if (!parsed.paused_months) {
+          parsed.paused_months = {};
+        }
+        if (!parsed.suplente) parsed.suplente = {};
+        if (!parsed.lideranca) parsed.lideranca = {};
+        if (!parsed.admin) parsed.admin = {};
+        return parsed;
       }
-      return parsed;
     }
   } catch (e) {
     console.error("Erro ao ler local_pausados_fallback:", e);
