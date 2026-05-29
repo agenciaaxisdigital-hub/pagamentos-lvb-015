@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { saveLocalVencimento, saveLocalAdminSuplente } from "@/lib/pausadosFallback";
+import { saveLocalVencimento, saveLocalAdminSuplente, saveLocalDataInicio, getLocalDataInicio } from "@/lib/pausadosFallback";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,6 +28,7 @@ interface FormData {
   suplente_id: string | null;
   contrato_url: string | null;
   dia_vencimento: number;
+  data_inicio: string;
 }
 
 const defaultForm: FormData = {
@@ -41,6 +42,7 @@ const defaultForm: FormData = {
   suplente_id: null,
   contrato_url: null,
   dia_vencimento: 10,
+  data_inicio: "",
 };
 
 const fmt = (v: number) => (v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -115,6 +117,7 @@ export default function CadastroAdmin() {
       suplente_id: existing.suplente_id || null,
       contrato_url: existing.contrato_url || null,
       dia_vencimento: existing.dia_vencimento || 10,
+      data_inicio: getLocalDataInicio(id!) || "",
     });
     setSelectedMunicipio(existing.municipio_id || cidadeAtiva || "");
     setInitialized(true);
@@ -132,7 +135,7 @@ export default function CadastroAdmin() {
     savingRef.current = true;
     setSaving(true);
     try {
-      const { dia_vencimento, suplente_id, ...formClean } = form;
+      const { dia_vencimento, suplente_id, data_inicio, ...formClean } = form;
       const payload: any = { ...formClean, updated_at: new Date().toISOString() };
       payload.municipio_id = selectedMunicipio || cidadeAtiva || null;
       let error;
@@ -141,6 +144,7 @@ export default function CadastroAdmin() {
         if (!error) {
           saveLocalVencimento(id, form.dia_vencimento);
           saveLocalAdminSuplente(id, form.suplente_id);
+          saveLocalDataInicio(id, form.data_inicio || null);
         }
       } else {
         const { data, error: insertErr } = await (supabase as any).from("administrativo").insert(payload).select("id").maybeSingle();
@@ -148,6 +152,7 @@ export default function CadastroAdmin() {
         if (!error && data?.id) {
           saveLocalVencimento(data.id, form.dia_vencimento);
           saveLocalAdminSuplente(data.id, form.suplente_id);
+          saveLocalDataInicio(data.id, form.data_inicio || null);
         }
       }
       if (error) {
@@ -224,6 +229,15 @@ export default function CadastroAdmin() {
               <Input value={form.whatsapp} onChange={(e) => set("whatsapp", e.target.value)} placeholder="(62) 99999-9999" inputMode="tel" className="bg-card shadow-sm border-border" />
             </Field>
           </div>
+
+          <Field label="Data de Início">
+            <Input
+              type="date"
+              value={form.data_inicio || ""}
+              onChange={(e) => set("data_inicio", e.target.value)}
+              className="bg-card shadow-sm border-border"
+            />
+          </Field>
 
           <Field label="Vínculo com Suplente">
             <Select value={form.suplente_id || "none"} onValueChange={(v) => set("suplente_id", v === "none" ? null : v)}>

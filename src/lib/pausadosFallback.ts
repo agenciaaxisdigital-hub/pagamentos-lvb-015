@@ -232,7 +232,7 @@ export function getLocalPaused(tipo: "suplente" | "lideranca" | "admin"): Record
  * Mescla o status de pausado do banco com o do localStorage para tolerância a falhas.
  * Também mescla o dia de vencimento local e os relacionamentos de forma transparente.
  */
-export function mergePausados<T extends { id: string; pausado?: boolean | null; data_pausa?: string | null; dia_vencimento?: number | null; vinculado_id?: string | null; suplente_id?: string | null; lideranca_vinculada_id?: string | null }>(
+export function mergePausados<T extends { id: string; pausado?: boolean | null; data_pausa?: string | null; dia_vencimento?: number | null; vinculado_id?: string | null; suplente_id?: string | null; lideranca_vinculada_id?: string | null; data_inicio?: string | null }>(
   list: T[] | null | undefined,
   tipo: "suplente" | "lideranca" | "admin"
 ): T[] {
@@ -240,11 +240,13 @@ export function mergePausados<T extends { id: string; pausado?: boolean | null; 
   const localPaused = getLocalPaused(tipo);
   const localVencimentos = getLocalVencimentos().vencimentos;
   const localRel = getLocalRelacionamentos();
+  const localDatasInicio = getLocalDatasInicio().datas;
 
   return list.map(item => {
     const merged = {
       ...item,
-      dia_vencimento: localVencimentos[item.id] ?? item.dia_vencimento ?? 10
+      dia_vencimento: localVencimentos[item.id] ?? item.dia_vencimento ?? 10,
+      data_inicio: localDatasInicio[item.id] ?? (item as any).data_inicio ?? null
     };
 
     if (tipo === "suplente") {
@@ -464,3 +466,45 @@ export async function reactivateCollaborator(
     return { success: false, error: e };
   }
 }
+
+const DATA_INICIO_LOCAL_KEY = "local_data_inicio_fallback";
+
+interface LocalDataInicioData {
+  datas: Record<string, string>; // mapping: id -> ISO date or YYYY-MM-DD
+}
+
+function getLocalDatasInicio(): LocalDataInicioData {
+  try {
+    const stored = localStorage.getItem(DATA_INICIO_LOCAL_KEY);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch (e) {
+    console.error("Erro ao ler local_data_inicio_fallback:", e);
+  }
+  return { datas: {} };
+}
+
+function saveLocalDatasInicio(data: LocalDataInicioData) {
+  try {
+    localStorage.setItem(DATA_INICIO_LOCAL_KEY, JSON.stringify(data));
+  } catch (e) {
+    console.error("Erro ao salvar local_data_inicio_fallback:", e);
+  }
+}
+
+export function getLocalDataInicio(id: string): string {
+  const data = getLocalDatasInicio();
+  return data.datas[id] || "";
+}
+
+export function saveLocalDataInicio(id: string, dateStr: string | null | undefined) {
+  const data = getLocalDatasInicio();
+  if (dateStr) {
+    data.datas[id] = dateStr;
+  } else {
+    delete data.datas[id];
+  }
+  saveLocalDatasInicio(data);
+}
+

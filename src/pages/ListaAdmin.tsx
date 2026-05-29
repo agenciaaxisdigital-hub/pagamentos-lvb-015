@@ -175,6 +175,11 @@ export default function ListaAdmin() {
                               Suplente: {nomesMap?.[f.suplente_id]}
                             </span>
                           )}
+                          {f.data_inicio && (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-primary/5 text-primary border border-primary/10">
+                              📅 Início: {new Date(f.data_inicio + "T12:00:00").toLocaleDateString("pt-BR")}
+                            </span>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
