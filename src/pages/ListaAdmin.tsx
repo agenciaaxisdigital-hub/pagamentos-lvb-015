@@ -180,6 +180,11 @@ export default function ListaAdmin() {
                               📅 Início: {f.data_inicio.includes("-") ? f.data_inicio.split("-").reverse().join("/") : f.data_inicio}
                             </span>
                           )}
+                          {(f as any).funcao && (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-gradient-to-r from-blue-500/10 to-indigo-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20 shadow-sm">
+                              💼 {(f as any).funcao}
+                            </span>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">

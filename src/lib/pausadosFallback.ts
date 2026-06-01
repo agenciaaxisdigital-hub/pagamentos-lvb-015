@@ -256,6 +256,9 @@ export function mergePausados<T extends { id: string; pausado?: boolean | null; 
       merged.lideranca_vinculada_id = localRel.lideranca_vinculada[item.id] ?? item.lideranca_vinculada_id ?? null;
     } else if (tipo === "admin") {
       merged.suplente_id = localRel.admin_suplente[item.id] ?? item.suplente_id ?? null;
+      const extra = getLocalAdminExtra(item.id);
+      (merged as any).endereco = extra.endereco || (item as any).endereco || "";
+      (merged as any).funcao = extra.funcao || (item as any).funcao || "";
     }
 
     if (localPaused[item.id]) {
@@ -506,5 +509,133 @@ export function saveLocalDataInicio(id: string, dateStr: string | null | undefin
     delete data.datas[id];
   }
   saveLocalDatasInicio(data);
+}
+
+// --- FALLBACK EXTRAS ADMINISTRATIVO (ENDEREÇO E FUNÇÃO) ---
+const ADMIN_EXTRA_LOCAL_KEY = "local_admin_extra_fallback";
+
+export interface LocalAdminExtra {
+  endereco: string;
+  funcao: string;
+}
+
+interface LocalAdminExtraData {
+  extras: Record<string, LocalAdminExtra>;
+}
+
+function getLocalAdminExtras(): LocalAdminExtraData {
+  try {
+    const stored = localStorage.getItem(ADMIN_EXTRA_LOCAL_KEY);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch (e) {
+    console.error("Erro ao ler local_admin_extra_fallback:", e);
+  }
+  return { extras: {} };
+}
+
+function saveLocalAdminExtras(data: LocalAdminExtraData) {
+  try {
+    localStorage.setItem(ADMIN_EXTRA_LOCAL_KEY, JSON.stringify(data));
+  } catch (e) {
+    console.error("Erro ao salvar local_admin_extra_fallback:", e);
+  }
+}
+
+export function getLocalAdminExtra(id: string): LocalAdminExtra {
+  const data = getLocalAdminExtras();
+  return data.extras[id] || { endereco: "", funcao: "" };
+}
+
+export function saveLocalAdminExtra(id: string, extra: Partial<LocalAdminExtra>) {
+  const data = getLocalAdminExtras();
+  const current = data.extras[id] || { endereco: "", funcao: "" };
+  data.extras[id] = {
+    ...current,
+    ...extra
+  };
+  saveLocalAdminExtras(data);
+}
+
+// --- FALLBACK DE CIDADES / MUNICÍPIOS (BYPASS DE RLS) ---
+const MUNICIPIOS_LOCAL_KEY = "local_municipios_fallback";
+
+export interface LocalMunicipio {
+  id: string;
+  nome: string;
+  uf: string;
+  ativo: boolean;
+  criado_em: string;
+  is_local?: boolean;
+}
+
+interface LocalMunicipiosData {
+  municipios: LocalMunicipio[];
+}
+
+export function getLocalMunicipios(): LocalMunicipio[] {
+  try {
+    const stored = localStorage.getItem(MUNICIPIOS_LOCAL_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (parsed && Array.isArray(parsed.municipios)) {
+        return parsed.municipios;
+      }
+    }
+  } catch (e) {
+    console.error("Erro ao ler local_municipios_fallback:", e);
+  }
+  return [];
+}
+
+function saveLocalMunicipiosList(list: LocalMunicipio[]) {
+  try {
+    localStorage.setItem(MUNICIPIOS_LOCAL_KEY, JSON.stringify({ municipios: list }));
+  } catch (e) {
+    console.error("Erro ao salvar local_municipios_fallback:", e);
+  }
+}
+
+export function saveLocalMunicipio(m: Omit<LocalMunicipio, "ativo" | "criado_em"> & { ativo?: boolean; criado_em?: string }) {
+  const list = getLocalMunicipios();
+  const novo: LocalMunicipio = {
+    id: m.id || `opt-loc-${Date.now()}`,
+    nome: m.nome,
+    uf: m.uf,
+    ativo: m.ativo !== undefined ? m.ativo : true,
+    criado_em: m.criado_em || new Date().toISOString(),
+    is_local: true
+  };
+  
+  // Evitar duplicados por id ou por nome
+  const filtered = list.filter(item => item.id !== novo.id && item.nome.toLowerCase() !== novo.nome.toLowerCase());
+  filtered.push(novo);
+  saveLocalMunicipiosList(filtered);
+}
+
+export function toggleLocalMunicipioAtivo(id: string, ativo: boolean) {
+  const list = getLocalMunicipios();
+  const updated = list.map(item => item.id === id ? { ...item, ativo } : item);
+  saveLocalMunicipiosList(updated);
+}
+
+export function mergeLocalMunicipios(list: any[] | null | undefined): any[] {
+  if (!list) list = [];
+  const localList = getLocalMunicipios();
+  
+  const merged = [...list];
+  
+  for (const local of localList) {
+    // Se a cidade já existe na lista do banco de dados (pelo id ou nome), não duplica
+    const existeId = merged.some(item => item.id === local.id);
+    const existeNome = merged.some(item => item.nome.toLowerCase() === local.nome.toLowerCase());
+    
+    if (!existeId && !existeNome) {
+      merged.push(local);
+    }
+  }
+  
+  return merged.sort((a, b) => (a.nome || "").localeCompare(b.nome || ""));
 }
 

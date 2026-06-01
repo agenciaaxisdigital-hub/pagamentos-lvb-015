@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { mergeLocalMunicipios } from "@/lib/pausadosFallback";
 
 export interface Municipio {
   id: string;
@@ -53,26 +54,28 @@ export function CidadeProvider({ children }: { children: React.ReactNode }) {
       .select("id, nome, uf, ativo, criado_em")
       .eq("ativo", true)
       .order("nome");
-    if (!error && data) {
-      setMunicipios(data);
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (!stored || stored === "") {
-        const aparecida = data.find((m: Municipio) => m.nome.toLowerCase().includes("aparecida"));
-        if (aparecida) {
-          setCidadeAtivaState(aparecida.id);
-          localStorage.setItem(STORAGE_KEY, aparecida.id);
-        } else if (data.length === 1) {
-          setCidadeAtivaState(data[0].id);
-          localStorage.setItem(STORAGE_KEY, data[0].id);
-        }
+
+    const merged = mergeLocalMunicipios(data || []);
+    const activeMerged = merged.filter((m: any) => m.ativo);
+
+    setMunicipios(activeMerged);
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored || stored === "") {
+      const aparecida = activeMerged.find((m: Municipio) => m.nome.toLowerCase().includes("aparecida"));
+      if (aparecida) {
+        setCidadeAtivaState(aparecida.id);
+        localStorage.setItem(STORAGE_KEY, aparecida.id);
+      } else if (activeMerged.length === 1) {
+        setCidadeAtivaState(activeMerged[0].id);
+        localStorage.setItem(STORAGE_KEY, activeMerged[0].id);
       }
-      if (stored && stored !== "todas" && !data.find((m: Municipio) => m.id === stored)) {
-        const aparecida = data.find((m: Municipio) => m.nome.toLowerCase().includes("aparecida"));
-        const fallback = aparecida || data[0];
-        if (fallback) {
-          setCidadeAtivaState(fallback.id);
-          localStorage.setItem(STORAGE_KEY, fallback.id);
-        }
+    }
+    if (stored && stored !== "todas" && !activeMerged.find((m: Municipio) => m.id === stored)) {
+      const aparecida = activeMerged.find((m: Municipio) => m.nome.toLowerCase().includes("aparecida"));
+      const fallback = aparecida || activeMerged[0];
+      if (fallback) {
+        setCidadeAtivaState(fallback.id);
+        localStorage.setItem(STORAGE_KEY, fallback.id);
       }
     }
   }, []);
