@@ -420,13 +420,17 @@ export default function Cadastro({ initial, onSaved }: Props) {
               <p className="text-[10px] text-muted-foreground">Dia do mês para lembrar do pagamento</p>
             </div>
             <div className="w-24">
-              <Input
-                type="number" inputMode="numeric" min="1" max="31"
-                value={form.dia_vencimento || ""}
-                onChange={(e) => setNum("dia_vencimento", Math.min(31, Math.max(1, parseInt(e.target.value) || 10)))}
-                placeholder="10"
-                className="bg-card shadow-sm border-border h-9 font-bold text-center"
-              />
+              <Select
+                value={String(form.dia_vencimento || 10)}
+                onValueChange={(v) => setNum("dia_vencimento", parseInt(v) || 10)}
+              >
+                <SelectTrigger className="bg-card shadow-sm border-border h-9 font-bold text-center"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 31 }, (_, i) => (
+                    <SelectItem key={i + 1} value={String(i + 1)}>{i + 1}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         )}

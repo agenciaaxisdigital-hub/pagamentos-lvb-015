@@ -425,13 +425,17 @@ export default function CadastroLideranca() {
             </Field>
 
             <Field label="Dia de Vencimento">
-              <Input
-                type="number" inputMode="numeric" min="1" max="31"
-                value={form.dia_vencimento || ""}
-                onChange={(e) => set("dia_vencimento", Math.min(31, Math.max(1, parseInt(e.target.value) || 10)))}
-                placeholder="10"
-                className="bg-card shadow-sm border-border h-12 font-bold text-sm"
-              />
+              <Select
+                value={String(form.dia_vencimento || 10)}
+                onValueChange={(v) => set("dia_vencimento", parseInt(v) || 10)}
+              >
+                <SelectTrigger className="bg-card shadow-sm border-border h-12 font-bold"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 31 }, (_, i) => (
+                    <SelectItem key={i + 1} value={String(i + 1)}>{i + 1}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </Field>
           </div>
 
