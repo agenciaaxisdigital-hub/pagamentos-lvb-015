@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { saveLocalVencimento, saveLocalLiderancaSuplente, saveLocalLiderancaVinculada, mergePausados } from "@/lib/pausadosFallback";
+import { saveLocalVencimento, saveLocalLiderancaSuplente, saveLocalLiderancaVinculada, mergePausados, saveLocalCollaboratorMunicipio } from "@/lib/pausadosFallback";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -151,6 +151,9 @@ export default function CadastroLideranca() {
     savingRef.current = true;
     setSaving(true);
     try {
+      const cityId = selectedMunicipio || cidadeAtiva || null;
+      const isLocalCity = cityId?.startsWith("opt-loc-");
+
       const payload: any = {
         nome: form.nome.trim(),
         cpf: form.cpf?.trim() || null,
@@ -162,7 +165,7 @@ export default function CadastroLideranca() {
         retirada_mensal_meses: Number(form.retirada_mensal_meses) || 0,
         chave_pix: form.chave_pix?.trim() || null,
         assinatura: form.assinatura || null,
-        municipio_id: selectedMunicipio || cidadeAtiva || null,
+        municipio_id: isLocalCity ? null : cityId,
         updated_at: new Date().toISOString(),
       };
 
@@ -178,6 +181,7 @@ export default function CadastroLideranca() {
           saveLocalVencimento(lidId, form.dia_vencimento);
           saveLocalLiderancaSuplente(lidId, form.suplente_id);
           saveLocalLiderancaVinculada(lidId, form.lideranca_vinculada_id);
+          saveLocalCollaboratorMunicipio(lidId, cityId);
         }
         toast({ title: id ? "Dados atualizados!" : "Cadastrado com sucesso!" });
         if (id) {

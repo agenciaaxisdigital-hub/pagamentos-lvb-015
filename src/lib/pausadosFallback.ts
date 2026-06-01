@@ -241,12 +241,14 @@ export function mergePausados<T extends { id: string; pausado?: boolean | null; 
   const localVencimentos = getLocalVencimentos().vencimentos;
   const localRel = getLocalRelacionamentos();
   const localDatasInicio = getLocalDatasInicio().datas;
+  const localColabMunicipios = getLocalCollaboratorMunicipios();
 
   return list.map(item => {
     const merged = {
       ...item,
       dia_vencimento: localVencimentos[item.id] ?? item.dia_vencimento ?? 10,
-      data_inicio: localDatasInicio[item.id] ?? (item as any).data_inicio ?? null
+      data_inicio: localDatasInicio[item.id] ?? (item as any).data_inicio ?? null,
+      municipio_id: localColabMunicipios[item.id] ?? (item as any).municipio_id ?? null
     };
 
     if (tipo === "suplente") {
@@ -638,4 +640,41 @@ export function mergeLocalMunicipios(list: any[] | null | undefined): any[] {
   
   return merged.sort((a, b) => (a.nome || "").localeCompare(b.nome || ""));
 }
+
+// --- VÍNCULO LOCAL DE COLABORADOR COM MUNICÍPIO (BYPASS DE UUID EM CIDADES LOCAIS) ---
+const COLABORADOR_MUNICIPIO_LOCAL_KEY = "local_colab_municipio_fallback";
+
+export function getLocalCollaboratorMunicipios(): Record<string, string> {
+  try {
+    const stored = localStorage.getItem(COLABORADOR_MUNICIPIO_LOCAL_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (parsed && typeof parsed.municipios === "object") {
+        return parsed.municipios;
+      }
+    }
+  } catch (e) {
+    console.error("Erro ao ler local_colab_municipio_fallback:", e);
+  }
+  return {};
+}
+
+function saveLocalCollaboratorMunicipiosList(map: Record<string, string>) {
+  try {
+    localStorage.setItem(COLABORADOR_MUNICIPIO_LOCAL_KEY, JSON.stringify({ municipios: map }));
+  } catch (e) {
+    console.error("Erro ao salvar local_colab_municipio_fallback:", e);
+  }
+}
+
+export function saveLocalCollaboratorMunicipio(id: string, municipioId: string | null | undefined) {
+  const map = getLocalCollaboratorMunicipios();
+  if (municipioId) {
+    map[id] = municipioId;
+  } else {
+    delete map[id];
+  }
+  saveLocalCollaboratorMunicipiosList(map);
+}
+
 

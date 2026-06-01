@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { saveLocalVencimento, saveLocalSuplenteVinculado } from "@/lib/pausadosFallback";
+import { saveLocalVencimento, saveLocalSuplenteVinculado, saveLocalCollaboratorMunicipio } from "@/lib/pausadosFallback";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -218,7 +218,9 @@ export default function Cadastro({ initial, onSaved }: Props) {
         total_campanha: totalCampanha 
       };
       
-      payload.municipio_id = municipio_id || cidadeAtiva || null;
+      const cityId = municipio_id || cidadeAtiva || null;
+      const isLocalCity = cityId?.startsWith("opt-loc-");
+      payload.municipio_id = isLocalCity ? null : cityId;
 
       let error;
       if (initial?.id) {
@@ -226,6 +228,7 @@ export default function Cadastro({ initial, onSaved }: Props) {
         if (!error) {
           saveLocalVencimento(initial.id, form.dia_vencimento);
           saveLocalSuplenteVinculado(initial.id, form.vinculado_id);
+          saveLocalCollaboratorMunicipio(initial.id, cityId);
         }
       } else {
         const { data, error: insertErr } = await supabase.from("suplentes").insert(payload).select("id").maybeSingle();
@@ -233,6 +236,7 @@ export default function Cadastro({ initial, onSaved }: Props) {
         if (!error && data?.id) {
           saveLocalVencimento(data.id, form.dia_vencimento);
           saveLocalSuplenteVinculado(data.id, form.vinculado_id);
+          saveLocalCollaboratorMunicipio(data.id, cityId);
         }
       }
 

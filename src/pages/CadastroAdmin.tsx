@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { saveLocalVencimento, saveLocalAdminSuplente, saveLocalDataInicio, getLocalDataInicio, mergePausados, saveLocalAdminExtra } from "@/lib/pausadosFallback";
+import { saveLocalVencimento, saveLocalAdminSuplente, saveLocalDataInicio, getLocalDataInicio, mergePausados, saveLocalAdminExtra, saveLocalCollaboratorMunicipio } from "@/lib/pausadosFallback";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -144,7 +144,11 @@ export default function CadastroAdmin() {
     try {
       const { dia_vencimento, suplente_id, data_inicio, endereco, funcao, ...formClean } = form;
       const payload: any = { ...formClean, updated_at: new Date().toISOString() };
-      payload.municipio_id = selectedMunicipio || cidadeAtiva || null;
+      
+      const cityId = selectedMunicipio || cidadeAtiva || null;
+      const isLocalCity = cityId?.startsWith("opt-loc-");
+      payload.municipio_id = isLocalCity ? null : cityId;
+
       let error;
       if (id) {
         ({ error } = await (supabase as any).from("administrativo").update(payload).eq("id", id));
@@ -153,6 +157,7 @@ export default function CadastroAdmin() {
           saveLocalAdminSuplente(id, form.suplente_id);
           saveLocalDataInicio(id, form.data_inicio || null);
           saveLocalAdminExtra(id, { endereco: form.endereco, funcao: form.funcao });
+          saveLocalCollaboratorMunicipio(id, cityId);
         }
       } else {
         const { data, error: insertErr } = await (supabase as any).from("administrativo").insert(payload).select("id").maybeSingle();
@@ -162,6 +167,7 @@ export default function CadastroAdmin() {
           saveLocalAdminSuplente(data.id, form.suplente_id);
           saveLocalDataInicio(data.id, form.data_inicio || null);
           saveLocalAdminExtra(data.id, { endereco: form.endereco, funcao: form.funcao });
+          saveLocalCollaboratorMunicipio(data.id, cityId);
         }
       }
       if (error) {
