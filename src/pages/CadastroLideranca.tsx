@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { saveLocalVencimento, saveLocalLiderancaSuplente, saveLocalLiderancaVinculada } from "@/lib/pausadosFallback";
+import { saveLocalVencimento, saveLocalLiderancaSuplente, saveLocalLiderancaVinculada, mergePausados } from "@/lib/pausadosFallback";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -117,24 +117,25 @@ export default function CadastroLideranca() {
   });
 
   if (existing && !initialized) {
+    const [merged] = mergePausados([existing], "lideranca");
     setForm({
-      nome: existing.nome || "",
-      cpf: existing.cpf || "",
-      regiao: existing.regiao || "",
-      whatsapp: existing.whatsapp || "",
-      rede_social: existing.rede_social || "",
-      ligacao_politica: existing.ligacao_politica || "",
-      retirada_mensal_valor: existing.retirada_mensal_valor || 0,
-      retirada_ate_mes: existing.retirada_ate_mes || 9,
-      retirada_mensal_meses: existing.retirada_mensal_meses || 4,
-      chave_pix: existing.chave_pix || "",
-      assinatura: existing.assinatura || "",
-      suplente_id: existing.suplente_id || null,
-      lideranca_vinculada_id: existing.lideranca_vinculada_id || null,
-      municipio_id: existing.municipio_id || null,
-      dia_vencimento: existing.dia_vencimento || 10,
+      nome: merged.nome || "",
+      cpf: merged.cpf || "",
+      regiao: merged.regiao || "",
+      whatsapp: merged.whatsapp || "",
+      rede_social: merged.rede_social || "",
+      ligacao_politica: merged.ligacao_politica || "",
+      retirada_mensal_valor: merged.retirada_mensal_valor || 0,
+      retirada_ate_mes: merged.retirada_ate_mes || 9,
+      retirada_mensal_meses: merged.retirada_mensal_meses || 4,
+      chave_pix: merged.chave_pix || "",
+      assinatura: merged.assinatura || "",
+      suplente_id: merged.suplente_id || null,
+      lideranca_vinculada_id: merged.lideranca_vinculada_id || null,
+      municipio_id: merged.municipio_id || null,
+      dia_vencimento: merged.dia_vencimento || 10,
     });
-    setSelectedMunicipio(existing.municipio_id || cidadeAtiva || "");
+    setSelectedMunicipio(merged.municipio_id || cidadeAtiva || "");
     setInitialized(true);
   }
 

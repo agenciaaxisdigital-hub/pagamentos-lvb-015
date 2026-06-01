@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { saveLocalVencimento, saveLocalAdminSuplente, saveLocalDataInicio, getLocalDataInicio } from "@/lib/pausadosFallback";
+import { saveLocalVencimento, saveLocalAdminSuplente, saveLocalDataInicio, getLocalDataInicio, mergePausados } from "@/lib/pausadosFallback";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -103,23 +103,24 @@ export default function CadastroAdmin() {
   const savingRef = useRef(false);
 
   if (existing && !initialized) {
-    const mesFim = existing.contrato_ate_mes || 9;
-    const meses = existing.valor_contrato_meses || 4;
+    const [merged] = mergePausados([existing], "admin");
+    const mesFim = merged.contrato_ate_mes || 9;
+    const meses = merged.valor_contrato_meses || 4;
     setContratoDeMesState(Math.max(3, mesFim - meses + 1));
     setForm({
-      nome: existing.nome || "",
-      cpf: existing.cpf || "",
-      whatsapp: existing.whatsapp || "",
-      valor_contrato: existing.valor_contrato || 0,
+      nome: merged.nome || "",
+      cpf: merged.cpf || "",
+      whatsapp: merged.whatsapp || "",
+      valor_contrato: merged.valor_contrato || 0,
       contrato_ate_mes: mesFim,
       valor_contrato_meses: meses,
-      assinatura: existing.assinatura || "",
-      suplente_id: existing.suplente_id || null,
-      contrato_url: existing.contrato_url || null,
-      dia_vencimento: existing.dia_vencimento || 10,
-      data_inicio: getLocalDataInicio(id!) || "",
+      assinatura: merged.assinatura || "",
+      suplente_id: merged.suplente_id || null,
+      contrato_url: merged.contrato_url || null,
+      dia_vencimento: merged.dia_vencimento || 10,
+      data_inicio: merged.data_inicio || "",
     });
-    setSelectedMunicipio(existing.municipio_id || cidadeAtiva || "");
+    setSelectedMunicipio(merged.municipio_id || cidadeAtiva || "");
     setInitialized(true);
   }
 

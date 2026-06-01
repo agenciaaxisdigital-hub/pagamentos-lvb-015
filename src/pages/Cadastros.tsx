@@ -64,7 +64,7 @@ export default function Cadastros() {
     return map;
   }, [suplentes]);
 
-  const editing = useMemo(() => editingId ? suplentes?.find((s: any) => s.id === editingId) : null, [suplentes, editingId]);
+  const editing = useMemo(() => editingId ? mergedSuplentes?.find((s: any) => s.id === editingId) : null, [mergedSuplentes, editingId]);
 
   const handlePause = async (id: string, nome: string, pausar: boolean) => {
     if (pausar) {
