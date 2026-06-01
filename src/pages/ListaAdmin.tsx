@@ -177,7 +177,7 @@ export default function ListaAdmin() {
                           )}
                           {f.data_inicio && (
                             <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-primary/5 text-primary border border-primary/10">
-                              📅 Início: {new Date(f.data_inicio + "T12:00:00").toLocaleDateString("pt-BR")}
+                              📅 Início: {f.data_inicio.includes("-") ? f.data_inicio.split("-").reverse().join("/") : f.data_inicio}
                             </span>
                           )}
                         </div>
