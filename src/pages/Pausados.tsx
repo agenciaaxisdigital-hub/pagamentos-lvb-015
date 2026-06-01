@@ -63,7 +63,11 @@ export default function Pausados() {
     queryFn: async () => {
       let query = supabase.from("suplentes").select("*").order("nome");
       if (cidadeAtiva) {
-        query = query.or(`municipio_id.eq.${cidadeAtiva},municipio_id.is.null`);
+        if (cidadeAtiva.startsWith("opt-loc-")) {
+          query = query.is("municipio_id", null);
+        } else {
+          query = query.or(`municipio_id.eq.${cidadeAtiva},municipio_id.is.null`);
+        }
       }
       const { data, error } = await query;
       if (error) throw error;
@@ -77,7 +81,11 @@ export default function Pausados() {
     queryFn: async () => {
       let query = supabase.from("liderancas").select("*").order("nome");
       if (cidadeAtiva) {
-        query = query.or(`municipio_id.eq.${cidadeAtiva},municipio_id.is.null`);
+        if (cidadeAtiva.startsWith("opt-loc-")) {
+          query = query.is("municipio_id", null);
+        } else {
+          query = query.or(`municipio_id.eq.${cidadeAtiva},municipio_id.is.null`);
+        }
       }
       const { data, error } = await query;
       if (error) throw error;
@@ -91,7 +99,11 @@ export default function Pausados() {
     queryFn: async () => {
       let query = supabase.from("administrativo").select("*").order("nome");
       if (cidadeAtiva) {
-        query = query.or(`municipio_id.eq.${cidadeAtiva},municipio_id.is.null`);
+        if (cidadeAtiva.startsWith("opt-loc-")) {
+          query = query.is("municipio_id", null);
+        } else {
+          query = query.or(`municipio_id.eq.${cidadeAtiva},municipio_id.is.null`);
+        }
       }
       const { data, error } = await query;
       if (error) throw error;
@@ -123,9 +135,15 @@ export default function Pausados() {
   const pausadosUnificados = useMemo(() => {
     const list: PausadoColab[] = [];
     
-    const mergedSuplentes = mergePausados(suplentes, "suplente");
-    const mergedLiderancas = mergePausados(liderancas, "lideranca");
-    const mergedAdministrativo = mergePausados(administrativo, "admin");
+    const mergedSuplentes = cidadeAtiva 
+      ? mergePausados(suplentes, "suplente").filter((s: any) => s.municipio_id === cidadeAtiva) 
+      : mergePausados(suplentes, "suplente");
+    const mergedLiderancas = cidadeAtiva 
+      ? mergePausados(liderancas, "lideranca").filter((l: any) => l.municipio_id === cidadeAtiva) 
+      : mergePausados(liderancas, "lideranca");
+    const mergedAdministrativo = cidadeAtiva 
+      ? mergePausados(administrativo, "admin").filter((a: any) => a.municipio_id === cidadeAtiva) 
+      : mergePausados(administrativo, "admin");
 
     (mergedSuplentes || []).forEach((s: any) => {
       if (s.pausado) {

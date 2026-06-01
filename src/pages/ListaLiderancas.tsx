@@ -66,7 +66,11 @@ export default function ListaLiderancas() {
     queryFn: async () => {
       let query = supabase.from("liderancas").select("*").order("nome");
       if (cidadeAtiva) {
-        query = query.or(`municipio_id.eq.${cidadeAtiva},municipio_id.is.null`);
+        if (cidadeAtiva.startsWith("opt-loc-")) {
+          query = query.is("municipio_id", null);
+        } else {
+          query = query.or(`municipio_id.eq.${cidadeAtiva},municipio_id.is.null`);
+        }
       }
       const { data, error } = await query;
       if (error) throw error;
@@ -77,7 +81,13 @@ export default function ListaLiderancas() {
 
   const isLoading = loadData || loadS || loadL;
 
-  const mergedLiderancas = useMemo(() => mergePausados(liderancas, "lideranca"), [liderancas]);
+  const mergedLiderancas = useMemo(() => {
+    const list = mergePausados(liderancas, "lideranca");
+    if (cidadeAtiva) {
+      return list.filter((l: any) => l.municipio_id === cidadeAtiva);
+    }
+    return list;
+  }, [liderancas, cidadeAtiva]);
   const liderancasAtivas = useMemo(() => (mergedLiderancas || []).filter((l: any) => !l.pausado), [mergedLiderancas]);
   const liderancasPausadas = useMemo(() => (mergedLiderancas || []).filter((l: any) => l.pausado), [mergedLiderancas]);
 

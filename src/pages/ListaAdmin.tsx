@@ -47,7 +47,11 @@ export default function ListaAdmin() {
     queryFn: async () => {
       let query = (supabase as any).from("administrativo").select("id, nome, cpf, whatsapp, valor_contrato, contrato_ate_mes, municipio_id, contrato_url").order("nome");
       if (cidadeAtiva) {
-        query = query.or(`municipio_id.eq.${cidadeAtiva},municipio_id.is.null`);
+        if (cidadeAtiva.startsWith("opt-loc-")) {
+          query = query.is("municipio_id", null);
+        } else {
+          query = query.or(`municipio_id.eq.${cidadeAtiva},municipio_id.is.null`);
+        }
       }
       const { data, error } = await query;
       if (error) throw error;
@@ -58,7 +62,13 @@ export default function ListaAdmin() {
 
   const isLoading = loadData || loadS;
 
-  const mergedFuncionarios = useMemo(() => mergePausados(funcionarios, "admin"), [funcionarios]);
+  const mergedFuncionarios = useMemo(() => {
+    const list = mergePausados(funcionarios, "admin");
+    if (cidadeAtiva) {
+      return list.filter((f: any) => f.municipio_id === cidadeAtiva);
+    }
+    return list;
+  }, [funcionarios, cidadeAtiva]);
   const adminAtivos = useMemo(() => (mergedFuncionarios || []).filter((f: any) => !f.pausado), [mergedFuncionarios]);
   const adminPausados = useMemo(() => (mergedFuncionarios || []).filter((f: any) => f.pausado), [mergedFuncionarios]);
 

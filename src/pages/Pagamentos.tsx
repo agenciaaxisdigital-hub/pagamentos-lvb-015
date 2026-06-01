@@ -270,7 +270,11 @@ export default function Pagamentos() {
     queryFn: async () => {
       let query = supabase.from("suplentes").select("*").order("nome");
       if (cidadeAtiva) {
-        query = query.or(`municipio_id.eq.${cidadeAtiva},municipio_id.is.null`);
+        if (cidadeAtiva.startsWith("opt-loc-")) {
+          query = query.is("municipio_id", null);
+        } else {
+          query = query.or(`municipio_id.eq.${cidadeAtiva},municipio_id.is.null`);
+        }
       }
       const { data, error } = await query;
       if (error) throw error;
@@ -284,7 +288,11 @@ export default function Pagamentos() {
     queryFn: async () => {
       let query = supabase.from("liderancas").select("*").order("nome");
       if (cidadeAtiva) {
-        query = query.or(`municipio_id.eq.${cidadeAtiva},municipio_id.is.null`);
+        if (cidadeAtiva.startsWith("opt-loc-")) {
+          query = query.is("municipio_id", null);
+        } else {
+          query = query.or(`municipio_id.eq.${cidadeAtiva},municipio_id.is.null`);
+        }
       }
       const { data, error } = await query;
       if (error) throw error;
@@ -298,7 +306,11 @@ export default function Pagamentos() {
     queryFn: async () => {
       let query = supabase.from("administrativo").select("*").order("nome");
       if (cidadeAtiva) {
-        query = query.or(`municipio_id.eq.${cidadeAtiva},municipio_id.is.null`);
+        if (cidadeAtiva.startsWith("opt-loc-")) {
+          query = query.is("municipio_id", null);
+        } else {
+          query = query.or(`municipio_id.eq.${cidadeAtiva},municipio_id.is.null`);
+        }
       }
       const { data, error } = await query;
       if (error) throw error;
@@ -327,9 +339,29 @@ export default function Pagamentos() {
 
   const isLoading = loadS || loadL || loadA || loadP;
 
-  const mergedSuplentes = useMemo(() => mergePausados(suplentes, "suplente"), [suplentes]);
-  const mergedLiderancas = useMemo(() => mergePausados(liderancas, "lideranca"), [liderancas]);
-  const mergedAdministrativo = useMemo(() => mergePausados(administrativo, "admin"), [administrativo]);
+  const mergedSuplentes = useMemo(() => {
+    const list = mergePausados(suplentes, "suplente");
+    if (cidadeAtiva) {
+      return list.filter((s: any) => s.municipio_id === cidadeAtiva);
+    }
+    return list;
+  }, [suplentes, cidadeAtiva]);
+
+  const mergedLiderancas = useMemo(() => {
+    const list = mergePausados(liderancas, "lideranca");
+    if (cidadeAtiva) {
+      return list.filter((l: any) => l.municipio_id === cidadeAtiva);
+    }
+    return list;
+  }, [liderancas, cidadeAtiva]);
+
+  const mergedAdministrativo = useMemo(() => {
+    const list = mergePausados(administrativo, "admin");
+    if (cidadeAtiva) {
+      return list.filter((a: any) => a.municipio_id === cidadeAtiva);
+    }
+    return list;
+  }, [administrativo, cidadeAtiva]);
 
   const suplentesAtivos = useMemo(() => (mergedSuplentes || []).filter((s: any) => !isCollaboratorPausedInMonth(s.id, "suplente", mes, s.pausado, s.data_pausa)), [mergedSuplentes, mes]);
   const liderancasAtivas = useMemo(() => (mergedLiderancas || []).filter((l: any) => !isCollaboratorPausedInMonth(l.id, "lideranca", mes, l.pausado, l.data_pausa)), [mergedLiderancas, mes]);

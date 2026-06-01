@@ -29,7 +29,11 @@ export default function Cadastros() {
     queryFn: async () => {
       let query = (supabase as any).from("suplentes").select("id, nome, numero_urna, bairro, regiao_atuacao, partido, situacao, total_votos, expectativa_votos, retirada_mensal_valor, retirada_mensal_meses, plotagem_qtd, plotagem_valor_unit, liderancas_qtd, liderancas_valor_unit, fiscais_qtd, fiscais_valor_unit, total_campanha, municipio_id, base_politica, telefone, cargo_disputado, ano_eleicao, assinatura").order("nome");
       if (cidadeAtiva) {
-        query = query.or(`municipio_id.eq.${cidadeAtiva},municipio_id.is.null`);
+        if (cidadeAtiva.startsWith("opt-loc-")) {
+          query = query.is("municipio_id", null);
+        } else {
+          query = query.or(`municipio_id.eq.${cidadeAtiva},municipio_id.is.null`);
+        }
       }
       const { data, error } = await query;
       if (error) throw error;
@@ -41,7 +45,13 @@ export default function Cadastros() {
   const normalizeStr = (str: string) =>
     (str || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
-  const mergedSuplentes = useMemo(() => mergePausados(suplentes, "suplente"), [suplentes]);
+  const mergedSuplentes = useMemo(() => {
+    const list = mergePausados(suplentes, "suplente");
+    if (cidadeAtiva) {
+      return list.filter((s: any) => s.municipio_id === cidadeAtiva);
+    }
+    return list;
+  }, [suplentes, cidadeAtiva]);
   const suplentesAtivos = useMemo(() => (mergedSuplentes || []).filter((s: any) => !s.pausado), [mergedSuplentes]);
   const suplentesPausados = useMemo(() => (mergedSuplentes || []).filter((s: any) => s.pausado), [mergedSuplentes]);
 
